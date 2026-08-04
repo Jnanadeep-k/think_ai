@@ -7,8 +7,6 @@
 
 **Thinkz AI** is a comprehensive technology upskilling ecosystem, inspired by structured platforms like GeeksforGeeks. It enables learners to master modern tech skills through self-paced articles, structured video courses, interactive live cohorts, coding practice, assessments, and verified certifications.
 
-> ⚠️ **Important**: Despite the brand name, this is a **deterministic Learning Management System (LMS)**. **Phase 1 intentionally excludes AI/ML features**. The platform relies purely on rule-based automation, workflow engines, and Role-Based Access Control (RBAC).
-
 ---
 
 ## 🎯 Vision & Architecture
