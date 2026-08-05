@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.text-brand {
+  @apply font-semibold tracking-wide;
+  background: linear-gradient(90deg, #A435F0, #6D28D9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+  box-sizing: border-box;
+}
+
+p {
+  margin: 0;
+}
+
+code {
+  font-family: ui-monospace, Consolas, monospace;
+  display: inline-flex;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+}
+
+@layer utilities {
+  .ambient-glow {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+
+  .bg-grid-masked {
+    background-size: 50px 50px;
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    -webkit-mask-image: radial-gradient(circle at center, black, transparent 80%);
+    mask-image: radial-gradient(circle at center, black, transparent 80%);
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .custom-checkbox {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .custom-checkbox:checked {
+    background: linear-gradient(to right, #6366f1, #22d3ee);
+    border-color: transparent;
+  }
+
+  .reset-link {
+    color: #22d3ee;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .reset-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+
+  /* ambient float animation for background glow orbs */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+
+  .animate-float {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 8s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
+  /* blinking terminal cursor */
+  @keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  .cursor-blink {
+    animation: blink 1s step-start infinite;
+  }
+
+  /* sequential LED dot pulse used in CodeTerminal window controls */
+  @keyframes loadDot {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); box-shadow: none; }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+
+  .dot-1 {
+    animation: loadDot 1.5s infinite ease-in-out;
+  }
+
+  .dot-2 {
+    animation: loadDot 1.5s infinite ease-in-out 0.2s;
+  }
+
+  .dot-3 {
+    animation: loadDot 1.5s infinite ease-in-out 0.4s;
+  }
+}
+
