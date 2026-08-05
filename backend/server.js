@@ -1,20 +1,34 @@
-require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
 
-const app = require("./app");
-const initDatabase = require("./config/initDb");
+require("./config/db");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
 
-const PORT = process.env.PORT || 3000;
+const courseRoutes = require("./routes/courseRoutes");
+const batchRoutes = require("./routes/batchRoutes");
+const enrollmentRoutes = require("./routes/enrollmentRoutes");
 
-async function startServer() {
-    try {
-        await initDatabase();
+const app = express();
 
-        app.listen(PORT, () => {
-            console.log(`Server running on ${PORT}`);
-        });
-    } catch (err) {
-        console.error("Failed to initialize database:", err);
-    }
-}
+app.use(cors());
+app.use(express.json());
 
-startServer();
+app.get("/", (req, res) => {
+    res.json({
+        success: true,
+        message: "LMS Backend API Running Successfully"
+    });
+});
+
+app.use("/api/courses", courseRoutes);
+app.use("/api/batches", batchRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
+
+app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec)
+);
+
+module.exports = app;
