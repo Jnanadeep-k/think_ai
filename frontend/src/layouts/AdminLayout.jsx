@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/admin/dashboard', label: 'Dashboard' },
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/courses', label: 'Courses' },
+  { to: '/admin/batches', label: 'Batches' },
 ];
 
 export default function AdminLayout() {
@@ -20,7 +21,7 @@ export default function AdminLayout() {
   const handleLogout = () => {
     setIsDropdownOpen(false);
     dispatch(logout());
-    navigate('/home'); 
+    navigate('/home');
   };
 
   const handleLinkClick = () => {
@@ -28,8 +29,8 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="h-screen w-full flex bg-[#0B0F19] text-white overflow-hidden relative">
-      <aside className="hidden md:flex w-64 flex-col border-r border-gray-800 bg-[#0D1220] p-6">
+      <div className="h-screen w-full flex bg-[#161A24] text-white overflow-hidden relative">
+        <aside className="hidden md:flex w-64 flex-col border-r border-gray-700 bg-[#1A1E2A] p-6">
         <Branding size="small" />
         <nav className="mt-10 flex flex-col gap-1">
           {NAV_ITEMS.map((item) => (
@@ -37,10 +38,9 @@ export default function AdminLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800/60'
+                `px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800/60'
                 }`
               }
             >

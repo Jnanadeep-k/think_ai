@@ -5,7 +5,6 @@ import RegisterPage from './pages/auth/RegisterPage';
 import LandingPage from './pages/public/Landingpage';
 import ProtectedRoute from './routes/ProtectedRoute';
 
-// Import your new separated routes
 import AdminRoutes from './routes/AdminRoutes';
 
 function RolePlaceholder({ label }) {
@@ -19,55 +18,48 @@ function RolePlaceholder({ label }) {
 export default function App() {
   return (
     <Routes>
-      {/* PUBLIC ROUTES */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/org-login" element={<RolePlaceholder label="Organization login" />} />
 
-      {/* ADMIN ROUTES */}
-      {/* The /* is critical here. It tells React Router to pass routing down to AdminRoutes */}
-      <Route 
-        path="/admin/*" 
+      <Route
+        path="/admin/*"
         element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['Admin']}>
             <AdminRoutes />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      {/* LEARNER ROUTES */}
-      <Route 
-        path="/learner/*" 
+      <Route
+        path="/learner/*"
         element={
-          <ProtectedRoute allowedRoles={['learner']}>
+          <ProtectedRoute allowedRoles={['Learner']}>
             <RolePlaceholder label="Learner" />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      {/* INSTRUCTOR ROUTES */}
-      <Route 
-        path="/instructor/*" 
+      <Route
+        path="/instructor/*"
         element={
-          <ProtectedRoute allowedRoles={['instructor']}>
+          <ProtectedRoute allowedRoles={['Instructor']}>
             <RolePlaceholder label="Instructor" />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      {/* TA ROUTES */}
-      <Route 
-        path="/ta/*" 
+      <Route
+        path="/ta/*"
         element={
-          <ProtectedRoute allowedRoles={['ta']}>
+          <ProtectedRoute allowedRoles={['Ta']}>
             <RolePlaceholder label="TA" />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      {/* CATCH-ALL ROUTE */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

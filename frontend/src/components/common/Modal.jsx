@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 
 export default function Modal({ isOpen, onClose, title, children }) {
-  // Prevent scrolling on the body when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -15,13 +14,10 @@ export default function Modal({ isOpen, onClose, title, children }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
-      {/* Click outside to close */}
       <div className="absolute inset-0" onClick={onClose} />
       
-      {/* Modal Content */}
       <div className="relative bg-[#112435] border border-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-800/60 bg-[#0D1220]/50">
           <h2 className="text-xl font-semibold text-white">{title}</h2>
           <button 
@@ -34,7 +30,6 @@ export default function Modal({ isOpen, onClose, title, children }) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-6">
           {children}
         </div>

@@ -11,10 +11,10 @@ import ErrorAlert from '../../components/auth/ErrorAlert';
 import CodeTerminal from '../../components/auth/CodeTerminal';
 
 const REG_HOME = {
-  learner: '/learner',
-  instructor: '/instructor',
-  ta: '/ta',
-  admin: '/admin',
+  Learner: '/learner',
+  Instructor: '/instructor',
+  TA: '/ta',
+  Admin: '/admin',
 };
 
 function toSystemError(message) {
