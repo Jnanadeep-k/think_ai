@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import InputField from '../../components/common/InputField';
 import Button from '../../components/common/Button';
 import UserModal from '../../components/admin/UserModal'; // <-- Imported Modal
 import { usePermission } from '../../hooks/usePermission';
-
+import apiClient from '../../services/apiClient';
 // Move to state inside component, but keep initial data here
 const INITIAL_USERS = [
   { id: 1, name: 'Test Learner', email: 'learner@test.com', role: 'learner', status: 'active' },
@@ -21,7 +21,13 @@ const ROLE_STYLES = {
 };
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState(INITIAL_USERS); // <-- Converted to state
+  const [users, setUsers] = useState([]);
+
+useEffect(() => {
+  apiClient.get('/admin/users').then((res) => {
+    setUsers(res.data.data);
+  });
+}, []); 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   
@@ -49,17 +55,18 @@ export default function AdminUsersPage() {
 
   // Handle saving data from modal
   const handleSaveUser = (userData) => {
-    if (userData.id) {
-      // Edit existing user
-      setUsers(users.map(u => u.id === userData.id ? userData : u));
-    } else {
-      // Add new user (generate fake ID)
-      const newUser = { ...userData, id: Date.now() };
-      setUsers([...users, newUser]);
-    }
-    setIsModalOpen(false);
-  };
-
+  if (userData.id) {
+    apiClient.put(`/admin/users/${userData.id}/role`, { role: userData.role })
+      .then((res) => {
+        setUsers(users.map(u => u.id === userData.id ? res.data.data : u));
+      });
+  } else {
+    // No backend support yet for creating new users — stays local for now
+    const newUser = { ...userData, id: Date.now() };
+    setUsers([...users, newUser]);
+  }
+  setIsModalOpen(false);
+};
   // Quick toggle for status column
   const handleToggleStatus = (userId) => {
     setUsers(users.map(u => {
