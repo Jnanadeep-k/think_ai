@@ -1,6 +1,15 @@
 const express = require("express");
+
 const router = express.Router();
-const courseController = require("../controllers/courseController");
+
+const {
+    getCourses,
+    getCourseById,
+    createCourse,
+    updateCourse,
+    deleteCourse,
+    getCourseBatches
+} = require("../controllers/courseController");
 
 /**
  * @swagger
@@ -17,9 +26,9 @@ const courseController = require("../controllers/courseController");
  *     tags: [Courses]
  *     responses:
  *       200:
- *         description: List of all courses
+ *         description: List of courses
  */
-router.get("/", courseController.getAllCourses);
+router.get("/", getCourses);
 
 /**
  * @swagger
@@ -33,13 +42,14 @@ router.get("/", courseController.getAllCourses);
  *         required: true
  *         schema:
  *           type: integer
+ *         example: 1
  *     responses:
  *       200:
  *         description: Course found
  *       404:
  *         description: Course not found
  */
-router.get("/:id", courseController.getCourseById);
+router.get("/:id", getCourseById);
 
 /**
  * @swagger
@@ -53,39 +63,39 @@ router.get("/:id", courseController.getCourseById);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - title
+ *               - description
+ *               - category
+ *               - price
+ *               - duration
  *             properties:
  *               title:
  *                 type: string
- *                 example: "Node.js Fundamentals"
+ *                 example: Node.js Masterclass
  *               description:
  *                 type: string
- *                 example: "Learn Node.js from scratch"
- *               instructor:
- *                 type: string
- *                 example: "John Doe"
- *               duration:
- *                 type: string
- *                 example: "30 Days"
+ *                 example: Complete Node.js Course
  *               category:
  *                 type: string
- *                 example: "Backend"
- *               level:
- *                 type: string
- *                 example: "Beginner"
- *               language:
- *                 type: string
- *                 example: "English"
+ *                 example: Backend
  *               price:
  *                 type: number
  *                 example: 4999
+ *               duration:
+ *                 type: string
+ *                 example: 60 Hours
  *               thumbnail:
  *                 type: string
- *                 example: "nodejs.png"
+ *                 example: node.png
+ *               status:
+ *                 type: string
+ *                 example: ACTIVE
  *     responses:
  *       201:
  *         description: Course created successfully
  */
-router.post("/", courseController.createCourse);
+router.post("/", createCourse);
 
 /**
  * @swagger
@@ -99,6 +109,7 @@ router.post("/", courseController.createCourse);
  *         required: true
  *         schema:
  *           type: integer
+ *         example: 1
  *     requestBody:
  *       required: true
  *       content:
@@ -108,25 +119,30 @@ router.post("/", courseController.createCourse);
  *             properties:
  *               title:
  *                 type: string
+ *                 example: Advanced Node.js
  *               description:
  *                 type: string
- *               instructor:
- *                 type: string
- *               duration:
- *                 type: string
+ *                 example: Updated Course
  *               category:
  *                 type: string
- *               level:
- *                 type: string
- *               language:
- *                 type: string
+ *                 example: Backend
  *               price:
  *                 type: number
+ *                 example: 5999
+ *               duration:
+ *                 type: string
+ *                 example: 70 Hours
+ *               thumbnail:
+ *                 type: string
+ *                 example: node-new.png
+ *               status:
+ *                 type: string
+ *                 example: ACTIVE
  *     responses:
  *       200:
  *         description: Course updated successfully
  */
-router.put("/:id", courseController.updateCourse);
+router.put("/:id", updateCourse);
 
 /**
  * @swagger
@@ -140,38 +156,32 @@ router.put("/:id", courseController.updateCourse);
  *         required: true
  *         schema:
  *           type: integer
+ *         example: 1
  *     responses:
  *       200:
  *         description: Course deleted successfully
  *       404:
  *         description: Course not found
  */
-router.delete("/:id", courseController.deleteCourse);
+router.delete("/:id", deleteCourse);
 
 /**
  * @swagger
- * /api/courses/{id}:
- *   patch:
- *     summary: Partially update a course
+ * /api/courses/{courseId}/batches:
+ *   get:
+ *     summary: Get all batches of a course
  *     tags: [Courses]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: courseId
  *         required: true
  *         schema:
  *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           example:
- *             price: 7999
+ *         example: 1
  *     responses:
  *       200:
- *         description: Course updated successfully
- *       404:
- *         description: Course not found
+ *         description: List of batches
  */
-router.patch("/:id", courseController.patchCourse);
+router.get("/:courseId/batches", getCourseBatches);
 
 module.exports = router;
