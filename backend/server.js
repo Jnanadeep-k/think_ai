@@ -1,34 +1,9 @@
-const express = require("express");
-const cors = require("cors");
+require("dotenv").config();
 
-require("./config/db");
-const swaggerUi = require("swagger-ui-express");
-const swaggerSpec = require("./config/swagger");
+const app = require("./app");
 
-const courseRoutes = require("./routes/courseRoutes");
-const batchRoutes = require("./routes/batchRoutes");
-const enrollmentRoutes = require("./routes/enrollmentRoutes");
+const PORT = process.env.PORT || 3000;
 
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-app.get("/", (req, res) => {
-    res.json({
-        success: true,
-        message: "LMS Backend API Running Successfully"
-    });
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });
-
-app.use("/api/courses", courseRoutes);
-app.use("/api/batches", batchRoutes);
-app.use("/api/enrollments", enrollmentRoutes);
-
-app.use(
-    "/api-docs",
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec)
-);
-
-module.exports = app;
