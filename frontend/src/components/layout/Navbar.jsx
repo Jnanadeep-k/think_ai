@@ -1,8 +1,24 @@
+<<<<<<< HEAD
 import React from "react";
 import { FaBell } from "react-icons/fa";
+=======
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { logout } from "../../features/auth/authSlice";
+>>>>>>> 854d340 (Updated: Admin dashboard, Users & Courses)
 
 function Navbar() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/login", { replace: true });
+  };
+
   return (
+<<<<<<< HEAD
     <header className="flex items-center justify-between bg-[#0B0F19] border-b border-gray-800 px-8 py-4">
       {/* Left */}
       <div>
@@ -43,6 +59,25 @@ function Navbar() {
         </div>
       </div>
     </header>
+=======
+    <div className="bg-white shadow h-16 flex justify-between items-center px-8">
+      <h2 className="text-2xl font-semibold">
+        Thinkz AI LMS
+      </h2>
+
+      <div className="flex items-center gap-4">
+        <span className="font-medium">
+          Welcome, {user?.name || "Admin"}
+        </span>
+        <button
+          onClick={handleLogout}
+          className="text-sm font-medium text-gray-600 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+>>>>>>> 854d340 (Updated: Admin dashboard, Users & Courses)
   );
 }
 

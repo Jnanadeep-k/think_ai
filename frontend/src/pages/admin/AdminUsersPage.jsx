@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import InputField from '../../components/common/InputField';
 import Button from '../../components/common/Button';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -11,6 +12,7 @@ import RBACMatrix from '../../components/RBACMatrix';
 import useSessionTimeout from '../../hooks/useSessionTimeout';
 import {
   fetchUsers,
+  createUser,
   updateUserRole,
   selectAdminUsers,
   selectAdminUsersLoading,
@@ -70,10 +72,19 @@ const canManageUsers = hasPermission('manage_users') || hasPermission('admin');
   };
 
   const handleSaveUser = async (userData) => {
-    if (userData.id) {
-      await dispatch(updateUserRole({ userId: userData.id, role: userData.role }));
+    const isEdit = Boolean(userData.id);
+    const thunk = isEdit
+      ? updateUserRole({ userId: userData.id, role: userData.role })
+      : createUser(userData);
+
+    const result = await dispatch(thunk);
+
+    if (result.meta.requestStatus === 'fulfilled') {
+      toast.success(isEdit ? 'User role updated' : 'User created successfully');
+      setIsModalOpen(false);
+    } else {
+      toast.error(result.payload || (isEdit ? 'Failed to update role' : 'Failed to create user'));
     }
-    setIsModalOpen(false);
   };
 
   // Toggle User Status handler

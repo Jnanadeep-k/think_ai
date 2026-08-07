@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "./pages/auth/LoginPage";
@@ -6,7 +7,13 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import LandingPage from "./pages/public/Landingpage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
+<<<<<<< HEAD
 import AppRoutes from "./routes/AppRoutes";
+=======
+import AdminRoutes from "./routes/AdminRoutes";
+
+import { fetchCurrentUser } from "./features/auth/authSlice";
+>>>>>>> 854d340 (Updated: Admin dashboard, Users & Courses)
 
 function RolePlaceholder({ label }) {
   return (
@@ -17,6 +24,16 @@ function RolePlaceholder({ label }) {
 }
 
 function App() {
+  const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth.token);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+
+  useEffect(() => {
+    if (token && !isAuthenticated) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [dispatch, token, isAuthenticated]);
+
   return (
     <Routes>
       {/* Public Routes */}
@@ -35,7 +52,11 @@ function App() {
         path="/admin/*"
         element={
           <ProtectedRoute allowedRoles={["Admin"]}>
+<<<<<<< HEAD
             <AppRoutes />
+=======
+            <AdminRoutes />
+>>>>>>> 854d340 (Updated: Admin dashboard, Users & Courses)
           </ProtectedRoute>
         }
       />
