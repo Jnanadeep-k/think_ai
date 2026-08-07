@@ -1,12 +1,15 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import LandingPage from './pages/public/Landingpage';
-import ProtectedRoute from './routes/ProtectedRoute';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
-// Import your new separated routes
-import AdminRoutes from './routes/AdminRoutes';
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import LandingPage from "./pages/public/Landingpage";
+
+import ProtectedRoute from "./routes/ProtectedRoute";
+import AdminRoutes from "./routes/AdminRoutes";
+
+// Your LMS Routes
+import AppRoutes from "./routes/AppRoutes";
 
 function RolePlaceholder({ label }) {
   return (
@@ -16,59 +19,66 @@ function RolePlaceholder({ label }) {
   );
 }
 
-export default function App() {
+function App() {
   return (
     <Routes>
-      {/* PUBLIC ROUTES */}
+      {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/org-login" element={<RolePlaceholder label="Organization login" />} />
-
-      {/* ADMIN ROUTES */}
-      {/* The /* is critical here. It tells React Router to pass routing down to AdminRoutes */}
-      <Route 
-        path="/admin/*" 
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminRoutes />
-          </ProtectedRoute>
-        } 
+      <Route
+        path="/org-login"
+        element={<RolePlaceholder label="Organization login" />}
       />
 
-      {/* LEARNER ROUTES */}
-      <Route 
-        path="/learner/*" 
+      {/* Admin Routes */}
+      <Route
+        path="/admin/*"
         element={
-          <ProtectedRoute allowedRoles={['learner']}>
+          <ProtectedRoute allowedRoles={["Admin"]}>
+            <>
+              <AdminRoutes />
+              <AppRoutes />
+            </>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Learner */}
+      <Route
+        path="/learner/*"
+        element={
+          <ProtectedRoute allowedRoles={["Learner"]}>
             <RolePlaceholder label="Learner" />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      {/* INSTRUCTOR ROUTES */}
-      <Route 
-        path="/instructor/*" 
+      {/* Instructor */}
+      <Route
+        path="/instructor/*"
         element={
-          <ProtectedRoute allowedRoles={['instructor']}>
+          <ProtectedRoute allowedRoles={["Instructor"]}>
             <RolePlaceholder label="Instructor" />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      {/* TA ROUTES */}
-      <Route 
-        path="/ta/*" 
+      {/* TA */}
+      <Route
+        path="/ta/*"
         element={
-          <ProtectedRoute allowedRoles={['ta']}>
+          <ProtectedRoute allowedRoles={["Ta"]}>
             <RolePlaceholder label="TA" />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      {/* CATCH-ALL ROUTE */}
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
+
+export default App;

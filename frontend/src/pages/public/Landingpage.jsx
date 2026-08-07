@@ -120,7 +120,7 @@ export default function LandingPage() {
           </nav>
           <div className="nav-cta">
             <Link to="/login" className="btn btn-ghost-dark hide-mobile">Log in</Link>
-            <Link to="/register" className="btn btn-amber">Get started</Link>
+            <Link to="/login" className="btn btn-amber">Get started</Link>
           </div>
         </div>
       </header>
@@ -320,7 +320,7 @@ export default function LandingPage() {
         <div className="cta-band reveal">
           <h2>Your next skill is one project away.</h2>
           <p>Join 420,000+ learners building things worth showing.</p>
-          <Link to="/register" className="btn btn-amber btn-lg">Start learning free</Link>
+          <Link to="/login" className="btn btn-amber btn-lg">Start learning free</Link>
         </div>
       </section>
 

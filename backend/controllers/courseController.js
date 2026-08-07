@@ -1,30 +1,46 @@
-const courseService = require("../services/courseService");
+const service = require("../services/courseService");
 
-exports.getAllCourses = async (req, res, next) => {
+const getCourses = async (req, res) => {
     try {
-        const courses = await courseService.getAllCourses();
+
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const search = req.query.search || "";
+
+        const courses = await service.getAllCourses(
+            page,
+            limit,
+            search
+        );
 
         res.status(200).json({
             success: true,
-            message: "Courses fetched successfully",
             data: courses
         });
 
     } catch (error) {
-        next(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
     }
 };
 
-exports.getCourseById = async (req, res, next) => {
+const getCourseById = async (req, res) => {
+
     try {
 
-        const course = await courseService.getCourseById(req.params.id);
+        const course = await service.getCourseById(req.params.id);
 
         if (!course) {
+
             return res.status(404).json({
                 success: false,
                 message: "Course not found"
             });
+
         }
 
         res.status(200).json({
@@ -33,60 +49,68 @@ exports.getCourseById = async (req, res, next) => {
         });
 
     } catch (error) {
-        next(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
     }
+
 };
 
-exports.createCourse = async (req, res, next) => {
+const createCourse = async (req, res) => {
+
     try {
 
-        const course = await courseService.createCourse(req.body);
+        const course = await service.createCourse(req.body);
 
         res.status(201).json({
             success: true,
-            message: "Course created successfully",
             data: course
         });
 
     } catch (error) {
-        next(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
     }
+
 };
 
-exports.updateCourse = async (req, res, next) => {
+const updateCourse = async (req, res) => {
+
     try {
 
-        const course = await courseService.updateCourse(req.params.id, req.body);
-
-        if (!course) {
-            return res.status(404).json({
-                success: false,
-                message: "Course not found"
-            });
-        }
+        const course = await service.updateCourse(
+            req.params.id,
+            req.body
+        );
 
         res.status(200).json({
             success: true,
-            message: "Course updated successfully",
             data: course
         });
 
     } catch (error) {
-        next(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
     }
+
 };
 
-exports.deleteCourse = async (req, res, next) => {
+const deleteCourse = async (req, res) => {
+
     try {
 
-        const deleted = await courseService.deleteCourse(req.params.id);
-
-        if (!deleted) {
-            return res.status(404).json({
-                success: false,
-                message: "Course not found"
-            });
-        }
+        await service.deleteCourse(req.params.id);
 
         res.status(200).json({
             success: true,
@@ -94,33 +118,41 @@ exports.deleteCourse = async (req, res, next) => {
         });
 
     } catch (error) {
-        next(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
     }
+
 };
 
-  exports.patchCourse = async (req, res) => {
+const getCourseBatches = async (req, res) => {
     try {
-        const course = await courseService.patchCourse(
-            req.params.id,
-            req.body
-        );
 
-        if (!course) {
-            return res.status(404).json({
-                success: false,
-                message: "Course not found"
-            });
-        }
+        const batches = await service.getCourseBatches(req.params.courseId);
 
         res.status(200).json({
             success: true,
-            data: course
+            data: batches
         });
 
-    } catch (err) {
+    } catch (error) {
+
         res.status(500).json({
             success: false,
-            message: err.message
+            message: error.message
         });
+
     }
+};
+
+module.exports = {
+    getCourses,
+    getCourseById,
+    createCourse,
+    updateCourse,
+    deleteCourse,
+    getCourseBatches
 };

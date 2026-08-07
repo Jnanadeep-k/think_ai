@@ -1,31 +1,34 @@
-const batchRepository = require("../repositories/batchRepository");
+const repository = require("../repositories/batchRepository");
 
-class BatchService {
+const getAllBatches = async () => {
+    return await repository.getAllBatches();
+};
 
-    async getAllBatches() {
-        return await batchRepository.findAll();
-    }
+const getBatchById = async (id) => {
+    return await repository.getBatchById(Number(id));
+};
 
-    async getBatchById(id) {
-        return await batchRepository.findById(id);
-    }
+const createBatch = async (data) => {
+    return await repository.createBatch(data);
+};
 
-    async createBatch(batchData) {
-        return await batchRepository.create(batchData);
-    }
+const updateBatch = async (id, data) => {
+    return await repository.updateBatch(Number(id), data);
+};
 
-    async updateBatch(id, batchData) {
-        return await batchRepository.update(id, batchData);
-    }
+const deleteBatch = async (id) => {
+    return await repository.deleteBatch(Number(id));
+};
 
-    async patchBatch(id, batchData) {
-        return await batchRepository.update(id, batchData);
-    }
+const getBatchEnrollments = async (batchId) => {
+    return repository.getBatchEnrollments(Number(batchId));
+};
 
-    async deleteBatch(id) {
-        return await batchRepository.delete(id);
-    }
-
-}
-
-module.exports = new BatchService();
+module.exports = {
+    getAllBatches,
+    getBatchById,
+    createBatch,
+    updateBatch,
+    deleteBatch,
+    getBatchEnrollments
+};

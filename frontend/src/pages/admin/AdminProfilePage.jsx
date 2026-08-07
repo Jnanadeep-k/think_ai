@@ -18,11 +18,9 @@ export default function AdminProfilePage() {
       </div>
 
       <div className="bg-[#112435] border border-gray-800 rounded-2xl p-8 shadow-lg relative overflow-hidden">
-        {/* Subtle background glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl -z-10" />
 
         <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
-          {/* Avatar Section */}
           <div className="flex flex-col items-center gap-4">
             <div className="w-32 h-32 rounded-full bg-cyan-500/20 border-2 border-teal-600 flex items-center justify-center text-5xl font-light text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
               {(user?.name || 'A').charAt(0).toUpperCase()}
@@ -32,7 +30,6 @@ export default function AdminProfilePage() {
             </span>
           </div>
 
-          {/* Details Section */}
           <div className="flex-1 w-full space-y-6">
             <div>
               <p className="text-sm text-gray-400 mb-1">Full Name</p>
