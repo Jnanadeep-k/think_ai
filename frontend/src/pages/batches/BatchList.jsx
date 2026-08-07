@@ -1,21 +1,28 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import { getBatches, deleteBatch } from "../../api/batchApi";
 
 function BatchList() {
   const [batches, setBatches] = useState([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchBatches(search);
   }, [search]);
 
   const fetchBatches = async (searchText = "") => {
+    setLoading(true);
+
     try {
       const response = await getBatches(searchText);
-      setBatches(response.data.data);
+      setBatches(response.data.data || []);
     } catch (error) {
-      console.error("Error fetching batches:", error);
+      console.error(error);
+      toast.error("Failed to load batches");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -28,76 +35,112 @@ function BatchList() {
 
     try {
       await deleteBatch(id);
-      alert("Batch deleted successfully");
+      toast.success("Batch deleted successfully");
       fetchBatches(search);
     } catch (error) {
       console.error(error);
-      alert("Failed to delete batch");
+      toast.error("Failed to delete batch");
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[70vh]">
+        <div className="text-cyan-400 text-xl font-semibold animate-pulse">
+          Loading Batches...
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">
-          Batch Management
-        </h1>
+    <div className="space-y-6">
+
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+
+        <div>
+          <h1 className="text-3xl font-bold text-white">
+            Batch Management
+          </h1>
+
+          <p className="text-gray-400 mt-1">
+            Manage all training batches.
+          </p>
+        </div>
 
         <Link
-          to="/batches/add"
-          className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700"
+          to="/admin/batches/add"
+          className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
         >
           + Add Batch
         </Link>
+
       </div>
 
-      <div className="mb-5">
+      <div>
         <input
           type="text"
-          placeholder="🔍 Search Batch..."
+          placeholder="Search Batch..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border rounded-lg px-4 py-2 w-80"
+          className="w-80 bg-[#0B0F19] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-[#1A1F2B] rounded-2xl border border-gray-800 shadow-lg overflow-hidden">
+
         <table className="w-full">
-          <thead className="bg-blue-600 text-white">
-            <tr>
-              <th className="p-3">ID</th>
-              <th>Name</th>
-              <th>Course</th>
-              <th>Instructor</th>
-              <th>Capacity</th>
-              <th>Status</th>
-              <th className="p-3">Actions</th>
+
+          <thead className="bg-[#0B0F19] border-b border-gray-800">
+
+            <tr className="text-cyan-400">
+
+              <th className="p-4 text-left">ID</th>
+              <th className="text-left">Name</th>
+              <th className="text-left">Course</th>
+              <th className="text-left">Instructor</th>
+              <th className="text-left">Capacity</th>
+              <th className="text-left">Status</th>
+              <th className="text-center">Actions</th>
+
             </tr>
+
           </thead>
 
           <tbody>
-            {batches.length > 0 ? (
+
+                        {batches.length > 0 ? (
               batches.map((batch) => (
                 <tr
                   key={batch.id}
-                  className="border-b hover:bg-gray-100"
+                  className="border-b border-gray-800 hover:bg-[#22283A] transition"
                 >
-                  <td className="p-3 text-center">{batch.id}</td>
+                  <td className="p-4 text-gray-300">
+                    {batch.id}
+                  </td>
 
-                  <td>{batch.name}</td>
+                  <td className="text-white font-medium">
+                    {batch.name}
+                  </td>
 
-                  <td>{batch.course?.title}</td>
+                  <td className="text-gray-300">
+                    {batch.course?.title || "-"}
+                  </td>
 
-                  <td>{batch.instructorName}</td>
+                  <td className="text-gray-300">
+                    {batch.instructorName}
+                  </td>
 
-                  <td>{batch.capacity}</td>
+                  <td className="text-gray-300">
+                    {batch.capacity}
+                  </td>
 
                   <td>
                     <span
-                      className={`px-3 py-1 rounded-full text-white text-sm ${
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         batch.status === "ACTIVE"
-                          ? "bg-green-500"
-                          : "bg-red-500"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-red-500/20 text-red-400"
                       }`}
                     >
                       {batch.status}
@@ -105,25 +148,25 @@ function BatchList() {
                   </td>
 
                   <td>
-                    <div className="flex gap-2 justify-center">
+                    <div className="flex justify-center gap-2">
 
                       <Link
-                        to={`/batches/${batch.id}`}
-                        className="bg-green-600 text-white px-3 py-1 rounded"
+                        to={`/admin/batches/${batch.id}`}
+                        className="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition"
                       >
                         View
                       </Link>
 
                       <Link
-                        to={`/batches/edit/${batch.id}`}
-                        className="bg-yellow-500 text-white px-3 py-1 rounded"
+                        to={`/admin/batches/edit/${batch.id}`}
+                        className="px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition"
                       >
                         Edit
                       </Link>
 
                       <button
                         onClick={() => handleDelete(batch.id)}
-                        className="bg-red-600 text-white px-3 py-1 rounded"
+                        className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
                       >
                         Delete
                       </button>
@@ -136,15 +179,33 @@ function BatchList() {
               <tr>
                 <td
                   colSpan="7"
-                  className="text-center py-6"
+                  className="py-16 text-center"
                 >
-                  No Batches Found
+                  <div>
+                    <h2 className="text-2xl font-semibold text-gray-300">
+                      No Batches Found
+                    </h2>
+
+                    <p className="text-gray-500 mt-2">
+                      Click "Add Batch" to create your first batch.
+                    </p>
+
+                    <Link
+                      to="/admin/batches/add"
+                      className="inline-block mt-6 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
+                    >
+                      + Add Batch
+                    </Link>
+                  </div>
                 </td>
               </tr>
             )}
           </tbody>
+
         </table>
+
       </div>
+
     </div>
   );
 }

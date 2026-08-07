@@ -70,7 +70,7 @@ function EditEnrollment() {
 
       toast.success("Enrollment Updated Successfully");
 
-      navigate("/enrollments");
+      navigate("/admin/enrollments");
     } catch (error) {
       console.error(error);
 
@@ -83,18 +83,24 @@ function EditEnrollment() {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-8">
+    <div className="max-w-5xl mx-auto">
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-8">
 
-        <h1 className="text-3xl font-bold">
-          Edit Enrollment
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold text-white">
+            Edit Enrollment
+          </h1>
+
+          <p className="text-gray-400 mt-1">
+            Update student enrollment details.
+          </p>
+        </div>
 
         <button
           type="button"
-          onClick={() => navigate(-1)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
+          onClick={() => navigate("/admin/enrollments")}
+          className="px-5 py-3 rounded-xl bg-[#1A1F2B] border border-gray-700 text-cyan-400 hover:bg-[#22283A] transition"
         >
           ← Back
         </button>
@@ -103,7 +109,7 @@ function EditEnrollment() {
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-2 gap-5"
+        className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-8 grid grid-cols-2 gap-6"
       >
 
         <input
@@ -112,7 +118,7 @@ function EditEnrollment() {
           placeholder="Student Name"
           value={enrollment.studentName}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
           required
         />
 
@@ -122,7 +128,7 @@ function EditEnrollment() {
           placeholder="Student Email"
           value={enrollment.studentEmail}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
           required
         />
 
@@ -130,7 +136,7 @@ function EditEnrollment() {
           name="batchId"
           value={enrollment.batchId}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500"
           required
         >
           <option value="">Select Batch</option>
@@ -149,7 +155,7 @@ function EditEnrollment() {
           name="enrollmentStatus"
           value={enrollment.enrollmentStatus}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500"
         >
           <option value="ACTIVE">ACTIVE</option>
           <option value="INACTIVE">INACTIVE</option>
@@ -157,7 +163,7 @@ function EditEnrollment() {
 
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded col-span-2"
+          className="col-span-2 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold py-3 rounded-xl transition"
         >
           Update Enrollment
         </button>

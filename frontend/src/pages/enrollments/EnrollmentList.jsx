@@ -9,18 +9,23 @@ import {
 function EnrollmentList() {
   const [enrollments, setEnrollments] = useState([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchEnrollments();
   }, []);
 
   const fetchEnrollments = async () => {
+    setLoading(true);
+
     try {
       const response = await getEnrollments();
       setEnrollments(response.data.data || []);
     } catch (error) {
       console.error(error);
       toast.error("Failed to load enrollments");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,28 +58,44 @@ function EnrollmentList() {
         .includes(search.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[70vh]">
+        <div className="text-cyan-400 text-xl font-semibold animate-pulse">
+          Loading Enrollments...
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
+    <div className="space-y-6">
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
 
-        <h1 className="text-3xl font-bold">
-          Enrollment Management
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold text-white">
+            Enrollment Management
+          </h1>
 
-        <div className="flex items-center gap-3">
+          <p className="text-gray-400 mt-1">
+            Manage all student enrollments.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
 
           <input
             type="text"
-            placeholder="🔍 Search Student..."
+            placeholder="Search Student..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border rounded-lg px-4 py-2 w-72 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-72 bg-[#0B0F19] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
           />
 
           <Link
-            to="/enrollments/add"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
+            to="/admin/enrollments/add"
+            className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
           >
             + Add Enrollment
           </Link>
@@ -83,111 +104,118 @@ function EnrollmentList() {
 
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-[#1A1F2B] rounded-2xl border border-gray-800 shadow-lg overflow-hidden">
 
         <table className="w-full">
 
-          <thead className="bg-blue-600 text-white">
+          <thead className="bg-[#0B0F19] border-b border-gray-800">
 
-            <tr>
-              <th className="p-3">ID</th>
-              <th>Student</th>
-              <th>Email</th>
-              <th>Batch</th>
-              <th>Status</th>
-              <th>Enrolled On</th>
-              <th className="p-3">Actions</th>
+            <tr className="text-cyan-400">
+
+              <th className="p-4 text-left">ID</th>
+              <th className="text-left">Student</th>
+              <th className="text-left">Email</th>
+              <th className="text-left">Batch</th>
+              <th className="text-left">Status</th>
+              <th className="text-left">Enrolled On</th>
+              <th className="text-center">Actions</th>
+
             </tr>
 
           </thead>
 
           <tbody>
-
-            {filteredEnrollments.length > 0 ? (
-
+                        {filteredEnrollments.length > 0 ? (
               filteredEnrollments.map((enrollment) => (
-
                 <tr
                   key={enrollment.id}
-                  className="border-b hover:bg-gray-100"
+                  className="border-b border-gray-800 hover:bg-[#22283A] transition"
                 >
-
-                  <td className="p-3 text-center">
+                  <td className="p-4 text-gray-300">
                     {enrollment.id}
                   </td>
 
-                  <td>{enrollment.studentName}</td>
+                  <td className="text-white font-medium">
+                    {enrollment.studentName}
+                  </td>
 
-                  <td>{enrollment.studentEmail}</td>
+                  <td className="text-gray-300">
+                    {enrollment.studentEmail}
+                  </td>
 
-                  <td>{enrollment.batch?.name}</td>
+                  <td className="text-gray-300">
+                    {enrollment.batch?.name || "-"}
+                  </td>
 
                   <td>
-
                     <span
-                      className={`px-3 py-1 rounded-full text-white text-sm ${
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         enrollment.enrollmentStatus === "ACTIVE"
-                          ? "bg-green-500"
-                          : "bg-red-500"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-red-500/20 text-red-400"
                       }`}
                     >
                       {enrollment.enrollmentStatus}
                     </span>
-
                   </td>
 
-                  <td>
+                  <td className="text-gray-300">
                     {new Date(enrollment.enrolledAt).toLocaleDateString()}
                   </td>
 
                   <td>
-
                     <div className="flex justify-center gap-2">
 
                       <Link
-                        to={`/enrollments/${enrollment.id}`}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
+                        to={`/admin/enrollments/${enrollment.id}`}
+                        className="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition"
                       >
                         View
                       </Link>
 
                       <Link
-                        to={`/enrollments/edit/${enrollment.id}`}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+                        to={`/admin/enrollments/edit/${enrollment.id}`}
+                        className="px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition"
                       >
                         Edit
                       </Link>
 
                       <button
                         onClick={() => handleDelete(enrollment.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                        className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
                       >
                         Delete
                       </button>
 
                     </div>
-
                   </td>
-
                 </tr>
-
               ))
-
             ) : (
-
               <tr>
-
                 <td
                   colSpan="7"
-                  className="text-center py-8 text-gray-500"
+                  className="py-16 text-center"
                 >
-                  No Enrollments Found
+                  <div>
+                    <h2 className="text-2xl font-semibold text-gray-300">
+                      No Enrollments Found
+                    </h2>
+
+                    <p className="text-gray-500 mt-2">
+                      Click "Add Enrollment" to create your first enrollment.
+                    </p>
+
+                    <Link
+                      to="/admin/enrollments/add"
+                      className="inline-block mt-6 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
+                    >
+                      + Add Enrollment
+                    </Link>
+                  </div>
                 </td>
-
               </tr>
-
             )}
-
           </tbody>
 
         </table>
