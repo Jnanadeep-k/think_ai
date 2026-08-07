@@ -2,215 +2,236 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const { z } = require('zod');
+const Joi = require('joi');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 
 const app = express();
-app.use(express.json()); // Allows the server to accept JSON data in request bodies
+app.use(express.json()); // Allows server to parse incoming JSON payloads
 
-// 1. CORS Configuration
-const corsOptions = {
-    origin: ['http://localhost:3000', 'http://localhost:5173'],
+// Mock In-Memory Database Architecture
+const usersDB = [];
+
+// JWT Authorization Signature Key
+const JWT_SECRET = 'super_secure_janadeep_jwt_secret_key_2026';
+
+// -------------------------------------------------------------
+// 🛠️ TASK 1: CORS Policy Configuration
+// Allows cross-origin requests from Karthik's frontend dashboard
+// -------------------------------------------------------------
+app.use(cors({
+    origin: '*', // Open to all origins for development integration testing
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
-};
-app.use(cors(corsOptions));
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// 2. Rate Limiting Configuration
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
-    message: { success: false, message: "Too many requests, try again later." },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-app.use(authLimiter);
-
-// // Mock Database (In-memory array for users)
-// (Your user array and endpoint routes start below this line...)
-
-// Secret key for signing JWTs
-const JWT_SECRET = 'your_super_secret_jwt_key';
-// Define validation schema for auth data
-const authSchema = z.object({
-  email: z.string().email({ message: "Invalid email format" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters long" })
+// -------------------------------------------------------------
+// 🛠️ TASK 2: Response Normalization Layer Middleware
+// Guarantees all responses match an identical structural template
+// -------------------------------------------------------------
+app.use((req, res, next) => {
+    res.normalizeResponse = (statusCode, successFlag, statusMessage, explicitData = null) => {
+        return res.status(statusCode).json({
+            success: successFlag,
+            message: statusMessage,
+            data: explicitData
+        });
+    };
+    next();
 });
 
-// Zod Validation Middleware function
-const validateAuthInput = (req, res, next) => {
-  const result = authSchema.safeParse(req.body);
-  if (!result.success) {
-   return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors: result.error.flatten().fieldErrors
+// -------------------------------------------------------------
+// 🛠️ TASK 3: API Validation Middleware Layers (Using Joi)
+// Intercepts and reviews inputs before processing database requests
+// -------------------------------------------------------------
+const validateRegisterInput = (req, res, next) => {
+    const schema = Joi.object({
+        email: Joi.string().email().required(),
+        password: Joi.string().min(6).required(),
+        username: Joi.string().min(3).optional()
     });
-  }
-  next();
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+        return res.normalizeResponse(400, false, `Validation Error: ${error.details[0].message}`);
+    }
+    next();
 };
+
+const validateLoginInput = (req, res, next) => {
+    const schema = Joi.object({
+        email: Joi.string().email().required(),
+        password: Joi.string().min(6).required()
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+        return res.normalizeResponse(400, false, `Validation Error: ${error.details[0].message}`);
+    }
+    next();
+};
+
+// -------------------------------------------------------------
+// 🛠️ TASK 4: Swagger Documentation Specifications Setup
+// Generates the JSON layout requirements schema details
+// -------------------------------------------------------------
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Janadeep Authentication API Management Hub',
+            version: '1.0.0',
+            description: 'Standardized Authentication module specifications with validation and normalization loops.',
+        },
+        servers: [{ url: 'http://localhost:5000/api' }],
+        components: {
+            securitySchemes: {
+                BearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                }
+            }
+        }
+    },
+    apis: ['./server.js'], // Instructs compiler to parse code block tags inside this file
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// -------------------------------------------------------------
+// 🛣️ INTEGRATED ENDPOINTS PATHWAY MAPPINGS (Prefix: /api)
+// -------------------------------------------------------------
+
 /**
- * ============================================================================
- * 1. REGISTER ROUTE
- * ============================================================================
+ * @openapi
+ * /api/register:
+ *   post:
+ *     summary: Register User Profile
+ *     description: Creates a new user with encrypted password hashing.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email: { type: string, example: user@test.com }
+ *               password: { type: string, example: pass1234 }
+ *               username: { type: string, example: JanadeepDev }
+ *     responses:
+ *       201: { description: Successfully created }
+ *       400: { description: Validation fail or duplication error }
  */
-app.post('/register', authLimiter, validateAuthInput, async (req, res) => {
+app.post('/api/register', validateRegisterInput, async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, username } = req.body;
 
-
-        // Check if user already exists
         const userExists = usersDB.find(u => u.email === email);
         if (userExists) {
-            return res.status(400).json({ success: false, message: "User already exists" });
+            return res.normalizeResponse(400, false, "Email profile is already registered.");
         }
 
-        // Hash the password securely using bcryptjs
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Save user record
-        const newUser = { id: Date.now(), email, password: hashedPassword };
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = { id: Date.now(), email, password: hashedPassword, username: username || "User" };
         usersDB.push(newUser);
 
-        // Generate JWT token automatically upon registration
-        const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: '1h' });
-
-        // Standardized response format
-        return res.status(201).json({
-            success: true,
-            message: "User registered successfully",
-            token,
-            user: { id: newUser.id, email: newUser.email }
-        });
-
-    } catch (error) {
-        return res.status(500).json({ success: false, message: "Server error during registration" });
+        return res.normalizeResponse(201, true, "Registration successfully processed!", { userId: newUser.id });
+    } catch (err) {
+        return res.normalizeResponse(500, false, "Server crash error encountered during generation.");
     }
 });
 
 /**
- * ============================================================================
- * 2. MISSING API: LOGIN ROUTE
- * ============================================================================
+ * @openapi
+ * /api/login:
+ *   post:
+ *     summary: User Login Verification
+ *     description: Authenticates profile parameters and returns a signed bearer JWT access token.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email: { type: string, example: user@test.com }
+ *               password: { type: string, example: pass1234 }
+ *     responses:
+ *       200: { description: Logged in successfully }
+ *       401: { description: Invalid credentials }
  */
-app.post('/login', authLimiter,validateAuthInput, async (req, res) => {
+app.post('/api/login', validateLoginInput, async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user by email
         const user = usersDB.find(u => u.email === email);
         if (!user) {
-            return res.status(400).json({ success: false, message: "Invalid email or password" });
+            return res.normalizeResponse(401, false, "Invalid email address or passcode sequence.");
         }
 
-        // Compare encrypted password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ success: false, message: "Invalid email or password" });
+        const passesMatch = await bcrypt.compare(password, user.password);
+        if (!passesMatch) {
+            return res.normalizeResponse(401, false, "Invalid email address or passcode sequence.");
         }
 
-        // Generate Access Token (15 minutes expiry)
-    const accessToken = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '15m' });
+        // Generate Secure JSON Web Token Session Key
+        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
 
-    // Generate Refresh Token (7 days expiry)
-    const refreshToken = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-
-    // Whitelist the active refresh token
-    activeRefreshTokens.push(refreshToken);
-
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
-      accessToken,
-      refreshToken,
-      user: { id: user.id, email: user.email }
-    });
-
-    } catch (error) {
-        return res.status(500).json({ success: false, message: "Server error during login" });
+        return res.normalizeResponse(200, true, "Authentication verification passed successfully.", {
+            profile: { id: user.id, email: user.email, username: user.username },
+            accessToken: token
+        });
+    } catch (err) {
+        return res.normalizeResponse(500, false, "Internal gateway verification failure.");
     }
 });
 
 /**
- * ============================================================================
- * 3. AUTHENTICATION MIDDLEWARE (Protects private routes)
- * ============================================================================
+ * @openapi
+ * /api/me:
+ *   get:
+ *     summary: Verify User Session
+ *     description: Decodes Bearer token from header metadata to authorize current session state.
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200: { description: Session authenticated }
+ *       401: { description: Missing or broken auth header parameters }
  */
-const protectRoute = (req, res, next) => {
+app.get('/api/me', (req, res) => {
     const authHeader = req.headers.authorization;
-
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, message: "Access denied. No token provided." });
+        return res.normalizeResponse(401, false, "Access Denied: Missing authentication token header.");
     }
 
-    const token = authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
-
+    const token = authHeader.split(' ')[1];
     try {
         const verifiedData = jwt.verify(token, JWT_SECRET);
-        req.user = verifiedData; // Store user details in request context
-        next(); // Proceed to route execution
-    } catch (error) {
-        return res.status(401).json({ success: false, message: "Invalid or expired token" });
+        const userProfile = usersDB.find(u => u.id === verifiedData.id);
+
+        if (!userProfile) {
+            return res.normalizeResponse(404, false, "User matching token parameters was not discovered.");
+        }
+
+        return res.normalizeResponse(200, true, "Active tracking validation payload extracted.", {
+            user: { id: userProfile.id, email: userProfile.email, username: userProfile.username }
+        });
+    } catch (err) {
+        return res.normalizeResponse(401, false, "Authorization session expired or modified corrupt token.");
     }
-};
-/**
- * ============================================================================
- * 4. MISSING API: GET /me ROUTE
- * ============================================================================
- */
-app.get('/me', protectRoute, (req, res) => {
-    return res.status(200).json({
-        success: true,
-        message: "User profile fetched successfully",
-        user: req.user
-    });
 });
 
-// Mock Array to store active whitelist refresh tokens
-const activeRefreshTokens = [];
-
-// Refresh Token Endpoint
-app.post('/refresh-token', (req, res) => {
-  const { refreshToken } = req.body;
-
-  if (!refreshToken) {
-    return res.status(401).json({ success: false, message: "Refresh token required" });
-  }
-
-  // 1. Check if token is inside our active whitelist database array
-  const tokenIndex = activeRefreshTokens.indexOf(refreshToken);
-  if (tokenIndex === -1) {
-    return res.status(403).json({ success: false, message: "Invalid or expired token" });
-  }
-
-  try {
-    // 2. Verify the incoming token credentials
-    const decoded = jwt.verify(refreshToken, 'your_super_secret_jwt_key');
-
-    // 3. IMMEDIATELY ROTATE IT: Delete old token from the whitelist array
-    activeRefreshTokens.splice(tokenIndex, 1);
-
-    // 4. Generate a brand new replacement Access Token and Refresh Token pair
-    const newAccessToken = jwt.sign({ email: decoded.email }, 'your_super_secret_jwt_key', { expiresIn: '15m' });
-    const newRefreshToken = jwt.sign({ email: decoded.email }, 'your_super_secret_jwt_key', { expiresIn: '7d' });
-
-    // 5. Add the newly generated refresh token back to your active database array whitelist
-    activeRefreshTokens.push(newRefreshToken);
-
-    // 6. Return both new keys back to user client
-    res.json({
-      success: true,
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken
-    });
-
-  } catch (err) {
-    return res.status(403).json({ success: false, message: "Token verification failed" });
-  }
-});
-// Port configuration
+// -------------------------------------------------------------
+// 🚀 ENGINE BOOT STRAP PROCESS
+// -------------------------------------------------------------
 const PORT = 5000;
 app.listen(PORT, () => {
-    console.log(`Authentication server running on http://localhost:${PORT}`);
+    console.log("================================================================");
+    console.log(` 🚀 Authentication Backend active at http://localhost:${PORT}`);
+    console.log(` 📘 Interactive Swagger Docs page: http://localhost:${PORT}/api-docs`);
+    console.log("================================================================");
 });
