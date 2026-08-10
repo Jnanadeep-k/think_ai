@@ -18,6 +18,7 @@ model Course {
   status      String   @default("ACTIVE")
 
   batches     Batch[]
+  modules     Module[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -50,4 +51,55 @@ model Enrollment {
   batch            Batch    @relation(fields: [batchId], references: [id])
   enrollmentStatus String   @default("ENROLLED")
   enrolledAt       DateTime @default(now())
+
+  lessonProgress   LessonProgress[]
+}
+
+model Module {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+
+  courseId    Int
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  lessons     Lesson[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lesson {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  content     String?
+  duration    String?
+  order       Int      @default(0)
+
+  moduleId    Int
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  progress    LessonProgress[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LessonProgress {
+  id            Int      @id @default(autoincrement())
+
+  enrollmentId  Int
+  enrollment    Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  lessonId      Int
+  lesson        Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  completed     Boolean  @default(false)
+  completedAt   DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([enrollmentId, lessonId])
 }

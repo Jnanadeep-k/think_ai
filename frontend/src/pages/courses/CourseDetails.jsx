@@ -1,123 +1,203 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import { getCourseById } from "../../api/courseApi";
+import { DetailsSkeleton } from "../../components/common/LoadingSkeleton";
 
 function CourseDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadCourse();
-  }, []);
+  }, [id]);
 
   const loadCourse = async () => {
     try {
+      setLoading(true);
+
       const response = await getCourseById(id);
+
       setCourse(response.data.data);
     } catch (error) {
       console.error(error);
+      toast.error("Failed to load course");
+      setCourse(null);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // LOADING SKELETON
+  if (loading) {
+    return <DetailsSkeleton />;
+  }
+
+  // NOT FOUND
   if (!course) {
     return (
-      <h2 className="text-xl text-center mt-10">
-        Loading...
-      </h2>
+      <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-12 text-center">
+
+        <div className="text-5xl mb-4">
+          📚
+        </div>
+
+        <h2 className="text-2xl font-semibold text-gray-300">
+          Course Not Found
+        </h2>
+
+        <p className="text-gray-500 mt-2">
+          The course you are looking for does not exist.
+        </p>
+
+        <button
+          type="button"
+          onClick={() => navigate("/admin/courses")}
+          className="mt-6 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
+        >
+          ← Back to Courses
+        </button>
+
+      </div>
     );
   }
 
   return (
-    <div className="bg-white shadow rounded-lg p-8">
+    <div>
 
-      <div className="flex justify-between items-center mb-6">
+      {/* HEADER */}
 
-        <h1 className="text-3xl font-bold">
-          Course Details
-        </h1>
+      <div className="flex justify-between items-center mb-8">
+
+        <div>
+          <h1 className="text-3xl font-bold text-white">
+            Course Details
+          </h1>
+
+          <p className="text-gray-400 mt-1">
+            View complete course information.
+          </p>
+        </div>
 
         <button
           type="button"
-          onClick={() => navigate(-1)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
+          onClick={() => navigate("/admin/courses")}
+          className="px-5 py-3 rounded-xl bg-[#1A1F2B] border border-gray-700 text-cyan-400 hover:bg-[#22283A] transition"
         >
           ← Back
         </button>
 
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      {/* COURSE DETAILS */}
 
-        <div className="bg-gray-100 p-5 rounded-lg">
-          <h3 className="text-gray-500 font-semibold">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* TITLE */}
+
+        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
+
+          <p className="text-gray-400 text-sm">
             Title
-          </h3>
-          <p className="text-xl font-bold mt-2">
+          </p>
+
+          <h2 className="text-white text-xl font-semibold mt-2">
             {course.title}
-          </p>
+          </h2>
+
         </div>
 
-        <div className="bg-gray-100 p-5 rounded-lg">
-          <h3 className="text-gray-500 font-semibold">
+        {/* CATEGORY */}
+
+        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
+
+          <p className="text-gray-400 text-sm">
             Category
-          </h3>
-          <p className="text-xl font-bold mt-2">
+          </p>
+
+          <h2 className="text-white text-xl font-semibold mt-2">
             {course.category}
-          </p>
+          </h2>
+
         </div>
 
-        <div className="bg-gray-100 p-5 rounded-lg">
-          <h3 className="text-gray-500 font-semibold">
+        {/* PRICE */}
+
+        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
+
+          <p className="text-gray-400 text-sm">
             Price
-          </h3>
-          <p className="text-xl font-bold mt-2">
+          </p>
+
+          <h2 className="text-white text-xl font-semibold mt-2">
             ₹ {course.price}
-          </p>
+          </h2>
+
         </div>
 
-        <div className="bg-gray-100 p-5 rounded-lg">
-          <h3 className="text-gray-500 font-semibold">
+        {/* DURATION */}
+
+        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
+
+          <p className="text-gray-400 text-sm">
             Duration
-          </h3>
-          <p className="text-xl font-bold mt-2">
-            {course.duration}
           </p>
+
+          <h2 className="text-white text-xl font-semibold mt-2">
+            {course.duration}
+          </h2>
+
         </div>
 
-        <div className="bg-gray-100 p-5 rounded-lg">
-          <h3 className="text-gray-500 font-semibold">
+        {/* STATUS */}
+
+        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
+
+          <p className="text-gray-400 text-sm">
             Status
-          </h3>
+          </p>
 
           <span
-            className={`px-3 py-1 rounded-full text-white ${
+            className={`inline-block mt-2 px-4 py-2 rounded-full text-sm font-semibold ${
               course.status === "ACTIVE"
-                ? "bg-green-600"
-                : "bg-red-600"
+                ? "bg-green-500/20 text-green-400"
+                : "bg-red-500/20 text-red-400"
             }`}
           >
             {course.status}
           </span>
+
         </div>
 
-        <div className="bg-gray-100 p-5 rounded-lg">
-          <h3 className="text-gray-500 font-semibold">
+        {/* THUMBNAIL */}
+
+        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
+
+          <p className="text-gray-400 text-sm">
             Thumbnail
-          </h3>
-          <p className="text-xl font-bold mt-2">
-            {course.thumbnail}
           </p>
+
+          <p className="text-white mt-2 break-all">
+            {course.thumbnail || "No Thumbnail"}
+          </p>
+
         </div>
 
-        <div className="bg-gray-100 p-5 rounded-lg col-span-2">
-          <h3 className="text-gray-500 font-semibold">
+        {/* DESCRIPTION */}
+
+        <div className="md:col-span-2 bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
+
+          <p className="text-gray-400 text-sm mb-3">
             Description
-          </h3>
-          <p className="text-lg mt-2">
-            {course.description}
           </p>
+
+          <p className="text-gray-300 leading-7">
+            {course.description || "No description available."}
+          </p>
+
         </div>
 
       </div>

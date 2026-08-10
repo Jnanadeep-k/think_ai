@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import { getBatchById, updateBatch } from "../../api/batchApi";
 import { getCourses } from "../../api/courseApi";
 
@@ -27,9 +28,10 @@ function EditBatch() {
   const loadCourses = async () => {
     try {
       const response = await getCourses();
-      setCourses(response.data.data);
+      setCourses(response.data.data || []);
     } catch (error) {
       console.error(error);
+      toast.error("Failed to load courses");
     }
   };
 
@@ -39,7 +41,6 @@ function EditBatch() {
 
       const data = response.data.data;
 
-      // ✅ Only keep editable fields
       setBatch({
         name: data.name,
         courseId: data.courseId,
@@ -49,9 +50,9 @@ function EditBatch() {
         endDate: data.endDate.split("T")[0],
         status: data.status,
       });
-
     } catch (error) {
       console.error(error);
+      toast.error("Failed to load batch");
     }
   };
 
@@ -71,8 +72,6 @@ function EditBatch() {
     e.preventDefault();
 
     try {
-
-      // ✅ Send only allowed fields
       const payload = {
         name: batch.name,
         courseId: Number(batch.courseId),
@@ -85,10 +84,9 @@ function EditBatch() {
 
       await updateBatch(id, payload);
 
-      alert("Batch Updated Successfully");
+      toast.success("Batch Updated Successfully");
 
-      navigate("/batches");
-
+      navigate("/admin/batches");
     } catch (error) {
       console.error(error);
 
@@ -96,20 +94,38 @@ function EditBatch() {
         console.log(error.response.data);
       }
 
-      alert("Update Failed");
+      toast.error("Update Failed");
     }
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-8">
+    <div className="max-w-5xl mx-auto">
 
-      <h1 className="text-3xl font-bold mb-6">
-        Edit Batch
-      </h1>
+      <div className="flex justify-between items-center mb-8">
+
+        <div>
+          <h1 className="text-3xl font-bold text-white">
+            Edit Batch
+          </h1>
+
+          <p className="text-gray-400 mt-1">
+            Update batch information.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate("/admin/batches")}
+          className="px-5 py-3 rounded-xl bg-[#1A1F2B] border border-gray-700 text-cyan-400 hover:bg-[#22283A] transition"
+        >
+          ← Back
+        </button>
+
+      </div>
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-2 gap-5"
+        className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-8 grid grid-cols-2 gap-6"
       >
 
         <input
@@ -118,7 +134,7 @@ function EditBatch() {
           placeholder="Batch Name"
           value={batch.name}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
           required
         />
 
@@ -126,16 +142,13 @@ function EditBatch() {
           name="courseId"
           value={batch.courseId}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500"
           required
         >
           <option value="">Select Course</option>
 
           {courses.map((course) => (
-            <option
-              key={course.id}
-              value={course.id}
-            >
+            <option key={course.id} value={course.id}>
               {course.title}
             </option>
           ))}
@@ -147,7 +160,7 @@ function EditBatch() {
           placeholder="Instructor Name"
           value={batch.instructorName}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
           required
         />
 
@@ -157,7 +170,7 @@ function EditBatch() {
           placeholder="Capacity"
           value={batch.capacity}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
           required
         />
 
@@ -166,7 +179,7 @@ function EditBatch() {
           name="startDate"
           value={batch.startDate}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500"
           required
         />
 
@@ -175,7 +188,7 @@ function EditBatch() {
           name="endDate"
           value={batch.endDate}
           onChange={handleChange}
-          className="border p-3 rounded"
+          className="bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500"
           required
         />
 
@@ -183,7 +196,7 @@ function EditBatch() {
           name="status"
           value={batch.status}
           onChange={handleChange}
-          className="border p-3 rounded col-span-2"
+          className="col-span-2 bg-[#0B0F19] border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500"
         >
           <option value="ACTIVE">ACTIVE</option>
           <option value="INACTIVE">INACTIVE</option>
@@ -191,7 +204,7 @@ function EditBatch() {
 
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded col-span-2"
+          className="col-span-2 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold py-3 rounded-xl transition"
         >
           Update Batch
         </button>

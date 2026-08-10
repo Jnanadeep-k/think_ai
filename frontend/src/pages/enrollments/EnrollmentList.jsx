@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+
 import {
   getEnrollments,
   deleteEnrollment,
 } from "../../api/enrollmentApi";
 
+import {
+  EnrollmentListSkeleton,
+} from "../../components/common/LoadingSkeleton";
+
 function EnrollmentList() {
   const [enrollments, setEnrollments] = useState([]);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchEnrollments();
@@ -16,11 +21,21 @@ function EnrollmentList() {
 
   const fetchEnrollments = async () => {
     try {
+      setLoading(true);
+
       const response = await getEnrollments();
-      setEnrollments(response.data.data || []);
+
+      setEnrollments(
+        response.data.data || []
+      );
     } catch (error) {
       console.error(error);
-      toast.error("Failed to load enrollments");
+
+      toast.error(
+        "Failed to load enrollments"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,165 +49,241 @@ function EnrollmentList() {
     try {
       await deleteEnrollment(id);
 
-      toast.success("Enrollment deleted successfully");
+      toast.success(
+        "Enrollment deleted successfully"
+      );
 
       fetchEnrollments();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to delete enrollment");
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to delete enrollment"
+      );
     }
   };
 
-  const filteredEnrollments = enrollments.filter(
-    (enrollment) =>
-      enrollment.studentName
-        ?.toLowerCase()
-        .includes(search.toLowerCase()) ||
-      enrollment.studentEmail
-        ?.toLowerCase()
-        .includes(search.toLowerCase())
-  );
+  if (loading) {
+    return <EnrollmentListSkeleton />;
+  }
 
   return (
     <div>
 
-      <div className="flex justify-between items-center mb-6">
+      {/* HEADER */}
 
-        <h1 className="text-3xl font-bold">
-          Enrollment Management
-        </h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
 
-        <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-white">
+            Enrollment Management
+          </h1>
 
-          <input
-            type="text"
-            placeholder="🔍 Search Student..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border rounded-lg px-4 py-2 w-72 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <p className="text-gray-400 mt-1">
+            Manage student enrollments.
+          </p>
+        </div>
+
+        <Link
+          to="/admin/enrollments/add"
+          className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
+        >
+          + Add Enrollment
+        </Link>
+
+      </div>
+
+      {/* EMPTY STATE */}
+
+      {enrollments.length === 0 ? (
+
+        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-12 text-center">
+
+          <div className="text-5xl mb-4">
+            👨‍🎓
+          </div>
+
+          <h2 className="text-2xl font-semibold text-gray-300">
+            No Enrollments Found
+          </h2>
+
+          <p className="text-gray-500 mt-2">
+            No students have been enrolled yet.
+          </p>
 
           <Link
-            to="/enrollments/add"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
+            to="/admin/enrollments/add"
+            className="inline-block mt-6 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
           >
             + Add Enrollment
           </Link>
 
         </div>
 
-      </div>
+      ) : (
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+        /* ENROLLMENT TABLE */
 
-        <table className="w-full">
+        <div className="bg-[#1A1F2B] rounded-2xl border border-gray-800 shadow-lg overflow-hidden">
 
-          <thead className="bg-blue-600 text-white">
+          <div className="overflow-x-auto">
 
-            <tr>
-              <th className="p-3">ID</th>
-              <th>Student</th>
-              <th>Email</th>
-              <th>Batch</th>
-              <th>Status</th>
-              <th>Enrolled On</th>
-              <th className="p-3">Actions</th>
-            </tr>
+            <table className="w-full">
 
-          </thead>
+              <thead className="bg-[#0B0F19] border-b border-gray-800">
 
-          <tbody>
+                <tr className="text-cyan-400">
 
-            {filteredEnrollments.length > 0 ? (
+                  <th className="p-4 text-left">
+                    ID
+                  </th>
 
-              filteredEnrollments.map((enrollment) => (
+                  <th className="p-4 text-left">
+                    Student Name
+                  </th>
 
-                <tr
-                  key={enrollment.id}
-                  className="border-b hover:bg-gray-100"
-                >
+                  <th className="p-4 text-left">
+                    Email
+                  </th>
 
-                  <td className="p-3 text-center">
-                    {enrollment.id}
-                  </td>
+                  <th className="p-4 text-left">
+                    Batch
+                  </th>
 
-                  <td>{enrollment.studentName}</td>
+                  <th className="p-4 text-left">
+                    Course
+                  </th>
 
-                  <td>{enrollment.studentEmail}</td>
+                  <th className="p-4 text-left">
+                    Status
+                  </th>
 
-                  <td>{enrollment.batch?.name}</td>
+                  <th className="p-4 text-left">
+                    Enrolled On
+                  </th>
 
-                  <td>
-
-                    <span
-                      className={`px-3 py-1 rounded-full text-white text-sm ${
-                        enrollment.enrollmentStatus === "ACTIVE"
-                          ? "bg-green-500"
-                          : "bg-red-500"
-                      }`}
-                    >
-                      {enrollment.enrollmentStatus}
-                    </span>
-
-                  </td>
-
-                  <td>
-                    {new Date(enrollment.enrolledAt).toLocaleDateString()}
-                  </td>
-
-                  <td>
-
-                    <div className="flex justify-center gap-2">
-
-                      <Link
-                        to={`/enrollments/${enrollment.id}`}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
-                      >
-                        View
-                      </Link>
-
-                      <Link
-                        to={`/enrollments/edit/${enrollment.id}`}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
-                      >
-                        Edit
-                      </Link>
-
-                      <button
-                        onClick={() => handleDelete(enrollment.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                      >
-                        Delete
-                      </button>
-
-                    </div>
-
-                  </td>
+                  <th className="p-4 text-center">
+                    Actions
+                  </th>
 
                 </tr>
 
-              ))
+              </thead>
 
-            ) : (
+              <tbody>
 
-              <tr>
+                {enrollments.map(
+                  (enrollment) => {
 
-                <td
-                  colSpan="7"
-                  className="text-center py-8 text-gray-500"
-                >
-                  No Enrollments Found
-                </td>
+                    const batch =
+                      enrollment.batch;
 
-              </tr>
+                    const course =
+                      batch?.course;
 
-            )}
+                    return (
 
-          </tbody>
+                      <tr
+                        key={enrollment.id}
+                        className="border-b border-gray-800 hover:bg-[#22283A] transition"
+                      >
 
-        </table>
+                        <td className="p-4 text-gray-300">
+                          {enrollment.id}
+                        </td>
 
-      </div>
+                        <td className="p-4 text-white font-medium">
+                          {enrollment.studentName}
+                        </td>
+
+                        <td className="p-4 text-gray-400">
+                          {enrollment.studentEmail}
+                        </td>
+
+                        <td className="p-4 text-cyan-400">
+                          {batch?.name || "-"}
+                        </td>
+
+                        <td className="p-4 text-gray-300">
+                          {course?.title || "-"}
+                        </td>
+
+                        <td className="p-4">
+
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              enrollment.enrollmentStatus ===
+                              "ACTIVE"
+                                ? "bg-green-500/20 text-green-400"
+                                : "bg-red-500/20 text-red-400"
+                            }`}
+                          >
+                            {
+                              enrollment.enrollmentStatus
+                            }
+                          </span>
+
+                        </td>
+
+                        <td className="p-4 text-gray-300">
+
+                          {enrollment.enrolledAt
+                            ? new Date(
+                                enrollment.enrolledAt
+                              ).toLocaleDateString()
+                            : "-"}
+
+                        </td>
+
+                        <td className="p-4">
+
+                          <div className="flex justify-center gap-2">
+
+                            <Link
+                              to={`/admin/enrollments/${enrollment.id}`}
+                              className="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition"
+                            >
+                              View
+                            </Link>
+
+                            <Link
+                              to={`/admin/enrollments/edit/${enrollment.id}`}
+                              className="px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition"
+                            >
+                              Edit
+                            </Link>
+
+                            <button
+                              onClick={() =>
+                                handleDelete(
+                                  enrollment.id
+                                )
+                              }
+                              className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
+                            >
+                              Delete
+                            </button>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+                    );
+                  }
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      )}
 
     </div>
   );
