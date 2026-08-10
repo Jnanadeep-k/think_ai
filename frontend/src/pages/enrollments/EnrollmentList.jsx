@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+
 import {
   getEnrollments,
   deleteEnrollment,
 } from "../../api/enrollmentApi";
 
+import {
+  EnrollmentListSkeleton,
+} from "../../components/common/LoadingSkeleton";
+
 function EnrollmentList() {
   const [enrollments, setEnrollments] = useState([]);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,14 +20,20 @@ function EnrollmentList() {
   }, []);
 
   const fetchEnrollments = async () => {
-    setLoading(true);
-
     try {
+      setLoading(true);
+
       const response = await getEnrollments();
-      setEnrollments(response.data.data || []);
+
+      setEnrollments(
+        response.data.data || []
+      );
     } catch (error) {
       console.error(error);
-      toast.error("Failed to load enrollments");
+
+      toast.error(
+        "Failed to load enrollments"
+      );
     } finally {
       setLoading(false);
     }
@@ -39,39 +49,31 @@ function EnrollmentList() {
     try {
       await deleteEnrollment(id);
 
-      toast.success("Enrollment deleted successfully");
+      toast.success(
+        "Enrollment deleted successfully"
+      );
 
       fetchEnrollments();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to delete enrollment");
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to delete enrollment"
+      );
     }
   };
 
-  const filteredEnrollments = enrollments.filter(
-    (enrollment) =>
-      enrollment.studentName
-        ?.toLowerCase()
-        .includes(search.toLowerCase()) ||
-      enrollment.studentEmail
-        ?.toLowerCase()
-        .includes(search.toLowerCase())
-  );
-
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[70vh]">
-        <div className="text-cyan-400 text-xl font-semibold animate-pulse">
-          Loading Enrollments...
-        </div>
-      </div>
-    );
+    return <EnrollmentListSkeleton />;
   }
 
   return (
-    <div className="space-y-6">
+    <div>
 
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+      {/* HEADER */}
+
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
 
         <div>
           <h1 className="text-3xl font-bold text-white">
@@ -79,148 +81,209 @@ function EnrollmentList() {
           </h1>
 
           <p className="text-gray-400 mt-1">
-            Manage all student enrollments.
+            Manage student enrollments.
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <Link
+          to="/admin/enrollments/add"
+          className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
+        >
+          + Add Enrollment
+        </Link>
 
-          <input
-            type="text"
-            placeholder="Search Student..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-72 bg-[#0B0F19] border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
-          />
+      </div>
+
+      {/* EMPTY STATE */}
+
+      {enrollments.length === 0 ? (
+
+        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-12 text-center">
+
+          <div className="text-5xl mb-4">
+            👨‍🎓
+          </div>
+
+          <h2 className="text-2xl font-semibold text-gray-300">
+            No Enrollments Found
+          </h2>
+
+          <p className="text-gray-500 mt-2">
+            No students have been enrolled yet.
+          </p>
 
           <Link
             to="/admin/enrollments/add"
-            className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
+            className="inline-block mt-6 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
           >
             + Add Enrollment
           </Link>
 
         </div>
 
-      </div>
+      ) : (
 
-      <div className="bg-[#1A1F2B] rounded-2xl border border-gray-800 shadow-lg overflow-hidden">
+        /* ENROLLMENT TABLE */
 
-        <table className="w-full">
+        <div className="bg-[#1A1F2B] rounded-2xl border border-gray-800 shadow-lg overflow-hidden">
 
-          <thead className="bg-[#0B0F19] border-b border-gray-800">
+          <div className="overflow-x-auto">
 
-            <tr className="text-cyan-400">
+            <table className="w-full">
 
-              <th className="p-4 text-left">ID</th>
-              <th className="text-left">Student</th>
-              <th className="text-left">Email</th>
-              <th className="text-left">Batch</th>
-              <th className="text-left">Status</th>
-              <th className="text-left">Enrolled On</th>
-              <th className="text-center">Actions</th>
+              <thead className="bg-[#0B0F19] border-b border-gray-800">
 
-            </tr>
+                <tr className="text-cyan-400">
 
-          </thead>
+                  <th className="p-4 text-left">
+                    ID
+                  </th>
 
-          <tbody>
-                        {filteredEnrollments.length > 0 ? (
-              filteredEnrollments.map((enrollment) => (
-                <tr
-                  key={enrollment.id}
-                  className="border-b border-gray-800 hover:bg-[#22283A] transition"
-                >
-                  <td className="p-4 text-gray-300">
-                    {enrollment.id}
-                  </td>
+                  <th className="p-4 text-left">
+                    Student Name
+                  </th>
 
-                  <td className="text-white font-medium">
-                    {enrollment.studentName}
-                  </td>
+                  <th className="p-4 text-left">
+                    Email
+                  </th>
 
-                  <td className="text-gray-300">
-                    {enrollment.studentEmail}
-                  </td>
+                  <th className="p-4 text-left">
+                    Batch
+                  </th>
 
-                  <td className="text-gray-300">
-                    {enrollment.batch?.name || "-"}
-                  </td>
+                  <th className="p-4 text-left">
+                    Course
+                  </th>
 
-                  <td>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        enrollment.enrollmentStatus === "ACTIVE"
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}
-                    >
-                      {enrollment.enrollmentStatus}
-                    </span>
-                  </td>
+                  <th className="p-4 text-left">
+                    Status
+                  </th>
 
-                  <td className="text-gray-300">
-                    {new Date(enrollment.enrolledAt).toLocaleDateString()}
-                  </td>
+                  <th className="p-4 text-left">
+                    Enrolled On
+                  </th>
 
-                  <td>
-                    <div className="flex justify-center gap-2">
+                  <th className="p-4 text-center">
+                    Actions
+                  </th>
 
-                      <Link
-                        to={`/admin/enrollments/${enrollment.id}`}
-                        className="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition"
-                      >
-                        View
-                      </Link>
-
-                      <Link
-                        to={`/admin/enrollments/edit/${enrollment.id}`}
-                        className="px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition"
-                      >
-                        Edit
-                      </Link>
-
-                      <button
-                        onClick={() => handleDelete(enrollment.id)}
-                        className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
-                      >
-                        Delete
-                      </button>
-
-                    </div>
-                  </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan="7"
-                  className="py-16 text-center"
-                >
-                  <div>
-                    <h2 className="text-2xl font-semibold text-gray-300">
-                      No Enrollments Found
-                    </h2>
 
-                    <p className="text-gray-500 mt-2">
-                      Click "Add Enrollment" to create your first enrollment.
-                    </p>
+              </thead>
 
-                    <Link
-                      to="/admin/enrollments/add"
-                      className="inline-block mt-6 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
-                    >
-                      + Add Enrollment
-                    </Link>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
+              <tbody>
 
-        </table>
+                {enrollments.map(
+                  (enrollment) => {
 
-      </div>
+                    const batch =
+                      enrollment.batch;
+
+                    const course =
+                      batch?.course;
+
+                    return (
+
+                      <tr
+                        key={enrollment.id}
+                        className="border-b border-gray-800 hover:bg-[#22283A] transition"
+                      >
+
+                        <td className="p-4 text-gray-300">
+                          {enrollment.id}
+                        </td>
+
+                        <td className="p-4 text-white font-medium">
+                          {enrollment.studentName}
+                        </td>
+
+                        <td className="p-4 text-gray-400">
+                          {enrollment.studentEmail}
+                        </td>
+
+                        <td className="p-4 text-cyan-400">
+                          {batch?.name || "-"}
+                        </td>
+
+                        <td className="p-4 text-gray-300">
+                          {course?.title || "-"}
+                        </td>
+
+                        <td className="p-4">
+
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              enrollment.enrollmentStatus ===
+                              "ACTIVE"
+                                ? "bg-green-500/20 text-green-400"
+                                : "bg-red-500/20 text-red-400"
+                            }`}
+                          >
+                            {
+                              enrollment.enrollmentStatus
+                            }
+                          </span>
+
+                        </td>
+
+                        <td className="p-4 text-gray-300">
+
+                          {enrollment.enrolledAt
+                            ? new Date(
+                                enrollment.enrolledAt
+                              ).toLocaleDateString()
+                            : "-"}
+
+                        </td>
+
+                        <td className="p-4">
+
+                          <div className="flex justify-center gap-2">
+
+                            <Link
+                              to={`/admin/enrollments/${enrollment.id}`}
+                              className="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition"
+                            >
+                              View
+                            </Link>
+
+                            <Link
+                              to={`/admin/enrollments/edit/${enrollment.id}`}
+                              className="px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition"
+                            >
+                              Edit
+                            </Link>
+
+                            <button
+                              onClick={() =>
+                                handleDelete(
+                                  enrollment.id
+                                )
+                              }
+                              className="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
+                            >
+                              Delete
+                            </button>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+                    );
+                  }
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      )}
 
     </div>
   );

@@ -44,18 +44,38 @@ const getEnrollmentById = async (req, res) => {
 
 const createEnrollment = async (req, res) => {
     try {
-
-        const enrollment = await service.createEnrollment(req.body);
+        const enrollment =
+            await service.createEnrollment(req.body);
 
         res.status(201).json({
             success: true,
+            message: "Enrollment created successfully",
             data: enrollment
         });
 
     } catch (error) {
+        console.error(
+            "Create enrollment error:",
+            error
+        );
+
+        const businessErrors = [
+            "Selected batch not found",
+            "Selected batch is full and no other available batch exists",
+            "No available batch exists for this course",
+            "Batch ID or Course ID is required"
+        ];
+
+        if (businessErrors.includes(error.message)) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         res.status(500).json({
             success: false,
-            message: error.message
+            message: "Failed to create enrollment"
         });
     }
 };
