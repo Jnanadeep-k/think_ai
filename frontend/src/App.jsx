@@ -19,6 +19,16 @@ function RolePlaceholder({ label }) {
   );
 }
 
+function Unauthorized() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    navigate("/login", { replace: true });
+  };
+}
+
 function App() {
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
