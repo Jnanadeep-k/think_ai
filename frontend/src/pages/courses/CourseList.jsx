@@ -6,8 +6,6 @@ import {
   deleteCourse,
   updateCourse,
 } from "../../api/courseApi";
-import { CourseListSkeleton } from "../../components/common/LoadingSkeleton";
-
 
 function CourseList() {
   const [courses, setCourses] = useState([]);
@@ -51,9 +49,15 @@ function CourseList() {
     }
   };
 
-if (loading) {
-  return <CourseListSkeleton />;
-}
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[70vh]">
+        <div className="text-cyan-400 text-xl font-semibold animate-pulse">
+          Loading Courses...
+        </div>
+      </div>
+    );
+  }
 
   const handleToggleStatus = async (course) => {
   try {

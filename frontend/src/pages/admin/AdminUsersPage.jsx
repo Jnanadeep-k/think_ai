@@ -38,6 +38,10 @@ export default function AdminUsersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 8; // Adjust this number to show more/less users per page
+
   const dispatch = useDispatch();
   const users = useSelector(selectAdminUsers) ?? [];
   const loading = useSelector(selectAdminUsersLoading);
@@ -47,15 +51,15 @@ export default function AdminUsersPage() {
   // State for bulk selection and role assignment
 const [selectedUserIds, setSelectedUserIds] = useState([]);
 const [selectedRole, setSelectedRole] = useState('');
-const [confirmstate, setconfirmstate] = useState({ open: false, action: null, payload: null });
+const [confirmState, setConfirmState] = useState({ open: false, action: null, payload: null });
 
 // RBAC permission check using your imported hook
-const { hasPermission } = usePermission();
-const canManageUsers = hasPermission('manage_users') || hasPermission('admin');
+const canManageUsers = usePermission('USER_MANAGEMENT');
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
+  // 1. Filter Users
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       const matchesSearch =
@@ -65,6 +69,17 @@ const canManageUsers = hasPermission('manage_users') || hasPermission('admin');
       return matchesSearch && matchesRole;
     });
   }, [search, roleFilter, users]);
+
+  // 2. Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter]);
+
+  // 3. Pagination Logic
+  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleOpenModal = (user = null) => {
     setSelectedUser(user);
@@ -80,10 +95,10 @@ const canManageUsers = hasPermission('manage_users') || hasPermission('admin');
     const result = await dispatch(thunk);
 
     if (result.meta.requestStatus === 'fulfilled') {
-      toast.success(isEdit ? 'User role updated' : 'User created successfully');
+      toast.success(isEdit ? 'User role updated' : 'User created successfully', { theme: "dark" });
       setIsModalOpen(false);
     } else {
-      toast.error(result.payload || (isEdit ? 'Failed to update role' : 'Failed to create user'));
+      toast.error(result.payload || (isEdit ? 'Failed to update role' : 'Failed to create user'), { theme: "dark" });
     }
   };
 
@@ -144,7 +159,14 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
           <p className="text-sm text-gray-400 mt-1">Manage learners, instructors, TAs and admins.</p>
         </div>
         {canManageUsers && (
-          <Button label="+ Add User" onClick={() => handleOpenModal()} />
+          <div className="shadow-[0_0_20px_rgba(168,85,247,0.3)] rounded-xl">
+            <button 
+              onClick={() => handleOpenModal()} 
+              className="px-8 py-3 text-lg font-bold bg-gradient-to-r from-indigo-500 to-cyan-400 hover:from-indigo-400 hover:to-cyan-300 text-white border-0 rounded-xl transition-all duration-300 shadow-lg hover:shadow-cyan-500/50"
+            >
+              + New User
+            </button>
+          </div>
         )}
       </div>
 
@@ -160,15 +182,15 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
               placeholder="Search by name or email"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {['all', 'Learner', 'Instructor', 'TA', 'Admin'].map((role) => (
               <button
                 key={role}
                 onClick={() => setRoleFilter(role)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   roleFilter === role
-                    ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
-                    : 'text-gray-400 border-gray-700 hover:border-gray-600'
+                    ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                    : 'text-gray-400 border-gray-700 hover:border-gray-600 hover:bg-gray-800/50'
                 }`}
               >
                 {role === 'all' ? 'All' : role}
@@ -276,6 +298,7 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
 </td>
                   </tr>
                 ))}
+                
                 {filteredUsers.length === 0 && (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-gray-400">
@@ -285,6 +308,35 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
                 )}
               </tbody>
             </table>
+
+            {/* 5. Pagination UI Controls */}
+            {totalPages > 0 && (
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-800/60">
+                <span className="text-xs text-gray-500 font-medium tracking-wide">
+                  Showing <strong className="text-gray-300">{indexOfFirstItem + 1}</strong> to <strong className="text-gray-300">{Math.min(indexOfLastItem, filteredUsers.length)}</strong> of <strong className="text-gray-300">{filteredUsers.length}</strong> users
+                </span>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 rounded-lg bg-white/[0.02] border border-gray-700 text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/[0.05] hover:border-gray-500 transition-all text-xs font-bold uppercase tracking-wider"
+                  >
+                    Prev
+                  </button>
+                  <div className="flex items-center px-4 py-2 rounded-lg bg-black/20 border border-gray-800 text-xs font-bold text-gray-400">
+                    {currentPage} / {totalPages}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 rounded-lg bg-white/[0.02] border border-gray-700 text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/[0.05] hover:border-gray-500 transition-all text-xs font-bold uppercase tracking-wider"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           </>
         )}

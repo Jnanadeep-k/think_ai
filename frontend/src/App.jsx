@@ -7,13 +7,9 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import LandingPage from "./pages/public/Landingpage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
-<<<<<<< HEAD
-import AppRoutes from "./routes/AppRoutes";
-=======
 import AdminRoutes from "./routes/AdminRoutes";
 
 import { fetchCurrentUser } from "./features/auth/authSlice";
->>>>>>> 854d340 (Updated: Admin dashboard, Users & Courses)
 
 function RolePlaceholder({ label }) {
   return (
@@ -52,11 +48,7 @@ function App() {
         path="/admin/*"
         element={
           <ProtectedRoute allowedRoles={["Admin"]}>
-<<<<<<< HEAD
-            <AppRoutes />
-=======
             <AdminRoutes />
->>>>>>> 854d340 (Updated: Admin dashboard, Users & Courses)
           </ProtectedRoute>
         }
       />
