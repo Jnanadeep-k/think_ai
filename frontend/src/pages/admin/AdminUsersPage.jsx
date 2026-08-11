@@ -6,6 +6,9 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorState from '../../components/common/ErrorState';
 import UserModal from '../../components/admin/UserModal';
 import { usePermission } from '../../hooks/usePermission';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import RBACMatrix from '../../components/RBACMatrix';
+import useSessionTimeout from '../../hooks/useSessionTimeout';
 import {
   fetchUsers,
   updateUserRole,
@@ -37,10 +40,12 @@ export default function AdminUsersPage() {
   const users = useSelector(selectAdminUsers) ?? [];
   const loading = useSelector(selectAdminUsersLoading);
   const error = useSelector(selectAdminUsersError);
+  useSessionTimeout();
 
   // State for bulk selection and role assignment
 const [selectedUserIds, setSelectedUserIds] = useState([]);
 const [selectedRole, setSelectedRole] = useState('');
+const [confirmstate, setconfirmstate] = useState({ open: false, action: null, payload: null });
 
 // RBAC permission check using your imported hook
 const { hasPermission } = usePermission();
@@ -110,6 +115,15 @@ const toggleUserSelection = (userId) => {
     prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
   );
 };
+const askConfirm = (action, payload) => setConfirmState({ open: true, action, payload });
+
+  const handleConfirmed = async () => {
+    const { action, payload } = confirmState;
+    if (action === 'toggleStatus') await handleStatusToggle(payload.id, payload.status);
+    if (action === 'resetPassword') await handlePasswordReset(payload.id);
+    if (action === 'bulkRole') await handleBulkRoleAssign();
+    setConfirmState({ open: false, action: null, payload: null });
+  };
 
   return (
     <div className="space-y-6">
@@ -179,7 +193,7 @@ const toggleUserSelection = (userId) => {
       <option value="TA">TA</option>
       <option value="Learner">Learner</option>
     </select>
-    <Button onClick={handleBulkRoleAssign}>Apply Bulk Role</Button>
+    <Button onClick={() => askConfirm('bulkRole', null)}>Apply Bulk Role</Button>
   </div>
      
      )}
@@ -225,14 +239,14 @@ const toggleUserSelection = (userId) => {
   {canManageUsers ? (
     <div className="flex items-center justify-end gap-2">
       <button
-        onClick={() => handleStatusToggle(user.id, user.status)}
+        onClick={() => askConfirm('toggleStatus', { id: user.id, status:user.status})}
         className="text-xs px-2 py-1 rounded bg-slate-800 text-cyan-400 hover:bg-slate-700"
       >
         Toggle ({user.status || 'active'})
       </button>
 
       <button
-        onClick={() => handlePasswordReset(user.id)}
+        onClick={() => askConfirm('resetPassword', {id: user.id})}
         className="text-xs px-2 py-1 rounded bg-slate-800 text-amber-400 hover:bg-slate-700"
       >
         Reset Password
@@ -264,7 +278,20 @@ const toggleUserSelection = (userId) => {
           </>
         )}
       </div>
+<RBACMatrix />
 
+        <ConfirmDialog
+          open={confirmState.open}
+          title="Confirm action"
+          message={
+            confirmState.action === 'bulkRole'
+              ? `Apply role "${selectedRole}" to ${selectedUserIds.length} selected user(s)?`
+              : `Are you sure you want to proceed for this user?`
+          }
+          danger={confirmState.action === 'toggleStatus'}
+          onConfirm={handleConfirmed}
+          onCancel={() => setConfirmState({ open: false, action: null, payload: null })}
+        />
       <UserModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
