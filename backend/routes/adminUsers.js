@@ -4,7 +4,7 @@ const { users } = require("../data/users");
 const { roles } = require("../data/roles");
 const { successResponse, errorResponse } = require("../utils/response");
 const { validateUserIdParam, validateRoleBody } = require("../validations/roleValidation");
-
+const {logAction} = require('../utils/auditlogger');
 router.get("/users", (req, res) => {
   return successResponse(res, 200, "Users fetched", users);
 });
@@ -32,7 +32,7 @@ router.put("/users/:id/role", validateUserIdParam, validateRoleBody, (req, res) 
 });
 
 // 1. Toggle User Status (Active/Inactive)
-router.patch("/users/:id/status", (req, res) => {
+router.patch("/users/:id/status", async(req, res) => {
   const userId = parseInt(req.params.id);
   const { status } = req.body; // "active" or "inactive"
   
@@ -40,16 +40,29 @@ router.patch("/users/:id/status", (req, res) => {
   if (!user) return errorResponse(res, 404, "User not found");
   
   user.status = status;
+  await logAction({
+    userId: userId,
+    action:'STATUS_TOGGLE',
+    targetType:'user',
+    targetId:String(userId),
+    metadata:{ newStatus: status},
+  });
   return successResponse(res, 200, `User status updated to ${status}`, user);
 });
 
 // 2. Trigger Password Reset
-router.post("/users/:id/reset-password", (req, res) => {
+router.post("/users/:id/reset-password",async (req, res) => {
   const userId = parseInt(req.params.id);
   
   const user = users.find((u) => u.id === userId);
   if (!user) return errorResponse(res, 404, "User not found");
-  
+  await logAction({
+    userId: userId,
+    action:'PASSWORD_RESET',
+    targetType:'user',
+    targetId:String(userId),
+    metadata:{ newStatus: status},
+  });
   return successResponse(res, 200, "Password reset email sent successfully", { userId });
 });
 

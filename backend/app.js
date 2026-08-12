@@ -10,6 +10,11 @@ const batchRoutes = require("./routes/batchRoutes");
 const enrollmentRoutes = require("./routes/enrollmentRoutes");
 
 const app = express();
+const auditLogRoutes = require('./routes/auditLogs');
+app.use('/api/audit-logs', auditLogRoutes);
+
+const analyticsRoutes = require('./routes/analytics');
+app.use('/api/analytics', analyticsRoutes);
 
 // Middlewares
 app.use(cors());

@@ -51,3 +51,12 @@ model Enrollment {
   enrollmentStatus String   @default("ENROLLED")
   enrolledAt       DateTime @default(now())
 }
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  targetType String?
+  targetId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
