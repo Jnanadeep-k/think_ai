@@ -10,24 +10,10 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoutes from "./routes/AdminRoutes";
 
 import { fetchCurrentUser } from "./features/auth/authSlice";
-
-function RolePlaceholder({ label }) {
-  return (
-    <div className="h-screen w-full flex items-center justify-center bg-[#0B0F19] text-white">
-      <p className="text-lg">{label} dashboard — coming soon.</p>
-    </div>
-  );
-}
-
-function Unauthorized() {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    dispatch(logoutUser());
-    navigate("/login", { replace: true });
-  };
-}
+import RolePlaceholder from "./components/common/RolePlaceholder";
+import CoursePlayer from "./pages/learner/CoursePlayer";
+import LearnerLayout from "./layouts/LearnerLayout";
+import LearnerDashboard  from "./pages/learner/LearnerDashboard"
 
 function App() {
   const dispatch = useDispatch();
@@ -65,13 +51,16 @@ function App() {
 
       {/* Learner */}
       <Route
-        path="/learner/*"
+        path="/learner"
         element={
           <ProtectedRoute allowedRoles={["Learner"]}>
-            <RolePlaceholder label="Learner" />
+            <LearnerLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<LearnerDashboard />} />
+        <Route path="courses/:courseId" element={<CoursePlayer />} />
+      </Route>
 
       {/* Instructor */}
       <Route

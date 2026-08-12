@@ -4,25 +4,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../../features/auth/authSlice';
 import InputField from '../../components/common/InputField';
 import Button from '../../components/common/Button';
-import Checkbox from '../../components/common/Checkbox';
 import Branding from '../../components/auth/Branding';
 import FeedbackHeader from '../../components/auth/FeedbackHeader';
 import ErrorAlert from '../../components/auth/ErrorAlert';
 import CodeTerminal from '../../components/auth/CodeTerminal';
-
-function toSystemError(message) {
-  if (!message) return null;
-  if (message.toLowerCase().includes('duplicate')) {
-    return `SYSTEM_REG_ERR_001: ${message} — neural sequence already exists. Use a new identity.`;
-  }
-  return `SYSTEM_REG_ERR_000: ${message}`;
-}
+import { getRegisterErrorMessage } from '../../utils/authErrors';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -31,7 +22,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await dispatch(
-      registerUser({ name, email, password, role: 'Learner' })
+      registerUser({ name, email, password })
     );
     if (registerUser.fulfilled.match(result)) {
       navigate('/learner');
@@ -54,15 +45,14 @@ export default function RegisterPage() {
 
           <Branding size="medium" />
 
-          <ErrorAlert message={toSystemError(error)} />
+          <ErrorAlert message={getRegisterErrorMessage(error)} />
 
           <FeedbackHeader
-            title="Begin Your Learning Journey"
-            description="Set up your credentials to begin sequence."
+            title="Set up your credentials to start your journey.."
             align="left"
           />
 
-          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-4">
             <InputField
               label="Full Name"
               id="name"
@@ -93,46 +83,27 @@ export default function RegisterPage() {
               autoComplete="new-password"
               required
             />
-
-            <div className="flex justify-between items-center text-xs lg:text-sm pt-1 lg:pt-2">
-              <Checkbox
-                id="terms"
-                label={
-                  <p>
-                    I accept the{' '}
-                    <a href="#" className="text-cyan-400 hover:text-cyan-300 underline">
-                      terms and conditions
-                    </a>
-                  </p>
-                }
-                checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
-              />
-            </div>
-
             <Button
               type="submit"
-              disabled={loading || !acceptTerms}
+              disabled={loading}
               label={loading ? 'Begin Sequence...' : 'Begin Registration'}
             />
           </form>
         </div>
 
-        <div className="w-full max-w-md bg-gray-900 border border-gray-800 p-6 rounded-2xl text-center space-y-4">
+        <div className="w-full max-w-md bg-gray-900 border border-gray-800 p-6 rounded-2xl text-center space-y-2">
           <p className="text-sm text-gray-400">
             Already have an account?{' '}
             <Link to="/login" className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors">
               Log in
             </Link>
           </p>
+          <p className="text-sm text-gray-400">
+            <Link to="/" className="text-[#C77DFF] font-semibold hover:text-[#A435F0] transition-colors">
+              ← Back to Home Page
+            </Link>
+          </p>
         </div>
-
-        <p className="text-[11px] lg:text-xs text-center text-gray-500 mt-6 lg:mt-8">
-          Encountering anomalies?{' '}
-          <a href="#" className="text-gray-300 hover:text-white underline decoration-gray-600 underline-offset-4">
-            Contact System Admin
-          </a>
-        </p>
       </div>
     </div>
   );

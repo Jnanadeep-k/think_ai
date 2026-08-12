@@ -25,11 +25,9 @@ export const fetchCourses = createAsyncThunk(
   'courses/fetchCourses',
   async ({ search = '', page = 1, limit = 6 } = {}, { rejectWithValue }) => {
     try {
-      // Ensure your api function expects the arguments in this exact order: (search, page, limit)
-      // If it expects an object, change this to getCourses({ search, page, limit })
       const response = await getCourses(search, page, limit);
       
-      return response.data; // Expected from backend: { success: true, data: [...] } OR { success: true, data: { courses: [...], pagination: {...} } }
+      return response.data; 
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to load courses');
     }
@@ -93,7 +91,6 @@ const courseSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // FETCH COURSES
       .addCase(fetchCourses.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -103,18 +100,14 @@ const courseSlice = createSlice({
         
         const responseData = action.payload?.data;
 
-        // Handle variations in backend response structures dynamically
         if (Array.isArray(responseData)) {
-          // Fallback: Backend directly returned { data: [...] } without pagination object
           state.items = responseData;
         } else if (responseData && Array.isArray(responseData.courses)) {
-          // Ideal: Backend returned { data: { courses: [...], pagination: {...} } }
           state.items = responseData.courses;
           if (responseData.pagination) {
             state.pagination = { ...state.pagination, ...responseData.pagination };
           }
         } else if (responseData && Array.isArray(responseData.data)) {
-          // Alternative nested data: Backend returned { data: { data: [...] } }
           state.items = responseData.data;
         } else {
           state.items = [];
@@ -123,7 +116,7 @@ const courseSlice = createSlice({
       .addCase(fetchCourses.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        state.items = []; // Clear items on error to prevent stale data
+        state.items = []; 
       })
       
       // FETCH COURSE BY ID
@@ -139,17 +132,13 @@ const courseSlice = createSlice({
         state.error = action.payload;
       })
       
-      // CREATE COURSE
       .addCase(createCourse.fulfilled, (state) => {
         state.error = null;
-        // Note: We don't push to state.items here because AdminCoursesPage automatically 
-        // dispatches fetchCourses() upon success to grab the refreshed, paginated list.
       })
       .addCase(createCourse.rejected, (state, action) => {
         state.error = action.payload;
       })
       
-      // UPDATE COURSE
       .addCase(updateCourse.fulfilled, (state, action) => {
         if (!action.payload) return;
         const idx = state.items.findIndex(
@@ -162,7 +151,6 @@ const courseSlice = createSlice({
         state.error = action.payload;
       })
       
-      // DELETE COURSE
       .addCase(deleteCourse.fulfilled, (state, action) => {
         state.items = state.items.filter(
           (c) => c.id !== action.payload && c._id !== action.payload

@@ -40,7 +40,7 @@ export default function AdminUsersPage() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 8; // Adjust this number to show more/less users per page
+  const ITEMS_PER_PAGE = 8;
 
   const dispatch = useDispatch();
   const users = useSelector(selectAdminUsers) ?? [];
@@ -49,12 +49,13 @@ export default function AdminUsersPage() {
   useSessionTimeout();
 
   // State for bulk selection and role assignment
-const [selectedUserIds, setSelectedUserIds] = useState([]);
-const [selectedRole, setSelectedRole] = useState('');
-const [confirmState, setConfirmState] = useState({ open: false, action: null, payload: null });
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedRole, setSelectedRole] = useState('');
+  const [confirmState, setConfirmState] = useState({ open: false, action: null, payload: null });
 
-// RBAC permission check using your imported hook
-const canManageUsers = usePermission('USER_MANAGEMENT');
+  // RBAC permission check
+  const canManageUsers = usePermission('USER_MANAGEMENT');
+  
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
@@ -103,45 +104,46 @@ const canManageUsers = usePermission('USER_MANAGEMENT');
   };
 
   // Toggle User Status handler
-const handleStatusToggle = async (userId, currentStatus) => {
-  const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-  try {
-    await toggleUserStatusApi(userId, newStatus);
-    dispatch(fetchUsers()); // Re-fetch or update local state
-  } catch (err) {
-    console.error('Error toggling status:', err);
-  }
-};
+  const handleStatusToggle = async (userId, currentStatus) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    try {
+      await toggleUserStatusApi(userId, newStatus);
+      dispatch(fetchUsers());
+    } catch (err) {
+      console.error('Error toggling status:', err);
+    }
+  };
 
-// Password Reset Handler
-const handlePasswordReset = async (userId) => {
-  try {
-    await triggerPasswordResetApi(userId);
-    alert('Password reset email sent successfully.');
-  } catch (err) {
-    console.error('Error resetting password:', err);
-  }
-};
+  // Password Reset Handler
+  const handlePasswordReset = async (userId) => {
+    try {
+      await triggerPasswordResetApi(userId);
+      alert('Password reset email sent successfully.');
+    } catch (err) {
+      console.error('Error resetting password:', err);
+    }
+  };
 
-// Bulk Role Assignment Handler
-const handleBulkRoleAssign = async () => {
-  if (!selectedUserIds.length || !selectedRole) return;
-  try {
-    await bulkAssignRolesApi(selectedUserIds, selectedRole);
-    setSelectedUserIds([]);
-    dispatch(fetchUsers());
-  } catch (err) {
-    console.error('Error with bulk role assignment:', err);
-  }
-};
+  // Bulk Role Assignment Handler
+  const handleBulkRoleAssign = async () => {
+    if (!selectedUserIds.length || !selectedRole) return;
+    try {
+      await bulkAssignRolesApi(selectedUserIds, selectedRole);
+      setSelectedUserIds([]);
+      dispatch(fetchUsers());
+    } catch (err) {
+      console.error('Error with bulk role assignment:', err);
+    }
+  };
 
-// Checkbox Selection Toggle Handler
-const toggleUserSelection = (userId) => {
-  setSelectedUserIds((prev) =>
-    prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-  );
-};
-const askConfirm = (action, payload) => setConfirmState({ open: true, action, payload });
+  // Checkbox Selection Toggle Handler
+  const toggleUserSelection = (userId) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+  
+  const askConfirm = (action, payload) => setConfirmState({ open: true, action, payload });
 
   const handleConfirmed = async () => {
     const { action, payload } = confirmState;
@@ -152,8 +154,11 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    // Main Wrapper: Fixed height, Flex column, Hidden overflow
+    <div className="relative flex flex-col h-full space-y-4 sm:space-y-6 -mt-2 overflow-hidden pb-2">
+      
+      {/* Header - shrink-0 to prevent squishing */}
+      <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-2xl font-semibold">Users</h1>
           <p className="text-sm text-gray-400 mt-1">Manage learners, instructors, TAs and admins.</p>
@@ -170,8 +175,11 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
         )}
       </div>
 
-      <div className="glass-panel rounded-2xl p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
+      {/* Glass Panel: flex-1 to fill space, min-h-0 to allow internal scrolling */}
+      <div className="flex-1 flex flex-col glass-panel rounded-2xl p-4 sm:p-6 space-y-4 min-h-0">
+        
+        {/* Search & Filters - shrink-0 */}
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-end shrink-0">
           <div className="flex-1">
             <InputField
               label="Search"
@@ -199,119 +207,135 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
           </div>
         </div>
 
-        {loading && <LoadingSpinner label="Loading users..." />}
+        {loading && <div className="flex-1 flex items-center justify-center"><LoadingSpinner label="Loading users..." /></div>}
 
         {!loading && error && (
-          <ErrorState
-            message={`${error} (expected until /admin/users is mounted on the backend)`}
-            onRetry={() => dispatch(fetchUsers())}
-          />
+          <div className="flex-1 flex items-center justify-center">
+            <ErrorState
+              message={`${error} (expected until /admin/users is mounted on the backend)`}
+              onRetry={() => dispatch(fetchUsers())}
+            />
+          </div>
         )}
 
         {!loading && !error && (
          <>
+            {/* Bulk Actions - shrink-0 */}
             {canManageUsers && selectedUserIds.length > 0 && (
-  <div className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg mb-4">
-    <span className="text-sm text-gray-300">
-      {selectedUserIds.length} user(s) selected
-    </span>
-    <select
-      value={selectedRole}
-      onChange={(e) => setSelectedRole(e.target.value)}
-      className="bg-slate-700 text-white text-sm p-2 rounded border border-slate-600"
-    >
-      <option value="">Select Target Role</option>
-      <option value="Admin">Admin</option>
-      <option value="Instructor">Instructor</option>
-      <option value="TA">TA</option>
-      <option value="Learner">Learner</option>
-    </select>
-    <Button onClick={() => askConfirm('bulkRole', null)}>Apply Bulk Role</Button>
-  </div>
-     
-     )}
-<div className="overflow-x-auto">
-            <table className="w-full text-sm">
-                 <thead>
-  <tr className="border-b border-slate-700 text-left text-xs text-slate-400">
-    {/* FIRST TH IN THE TR */}
-    <th className="p-3">
-      <input
-        type="checkbox"
-        onChange={(e) => {
-          if (e.target.checked) {
-            setSelectedUserIds(filteredUsers.map((u) => u.id));
-          } else {
-            setSelectedUserIds([]);
-          }
-        }}
-        checked={filteredUsers?.length > 0 && selectedUserIds.length === filteredUsers.length}
-      />
-    </th>
-    <th className="p-3">User</th>
-    <th className="p-3">Role</th>
-    <th className="p-3">Status</th>
-    <th className="p-3">Actions</th>
-  </tr>
-</thead>
+              <div className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg shrink-0">
+                <span className="text-sm text-gray-300">
+                  {selectedUserIds.length} user(s) selected
+                </span>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="bg-slate-700 text-white text-sm p-2 rounded border border-slate-600 outline-none"
+                >
+                  <option value="">Select Target Role</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Instructor">Instructor</option>
+                  <option value="TA">TA</option>
+                  <option value="Learner">Learner</option>
+                </select>
+                <Button onClick={() => askConfirm('bulkRole', null)}>Apply Bulk Role</Button>
+              </div>
+            )}
+
+            {/* Table Container - flex-1 for remaining space, overflow-auto for internal scrolling */}
+            <div className="flex-1 overflow-auto min-h-0 border border-gray-800/60 rounded-xl custom-scrollbar relative">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-[#151025] z-10 shadow-md">
+                  <tr className="border-b border-slate-700 text-left text-xs text-slate-400">
+                    <th className="p-4">
+                      <input
+                        type="checkbox"
+                        className="cursor-pointer"
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedUserIds(filteredUsers.map((u) => u.id));
+                          } else {
+                            setSelectedUserIds([]);
+                          }
+                        }}
+                        checked={filteredUsers?.length > 0 && selectedUserIds.length === filteredUsers.length}
+                      />
+                    </th>
+                    <th className="p-4 font-medium uppercase tracking-wider">User</th>
+                    <th className="p-4 font-medium uppercase tracking-wider">Role</th>
+                    <th className="p-4 font-medium uppercase tracking-wider">Status</th>
+                    <th className="p-4 font-medium uppercase tracking-wider text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentUsers.map((user) => (
+                    <tr key={user.id} className="border-b border-slate-800/60 hover:bg-white/[0.02] transition-colors">
+                      <td className="p-4">
+                        <input
+                          type="checkbox"
+                          className="cursor-pointer"
+                          checked={selectedUserIds.includes(user.id)}
+                          onChange={() => toggleUserSelection(user.id)}
+                        />
+                      </td>
+                      <td className="p-4 text-gray-200">
+                        <p className="font-medium">{user.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest uppercase border whitespace-nowrap ${ROLE_STYLES[user.role] || ROLE_STYLES.Learner}`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-full text-[10px] uppercase font-semibold tracking-wider ${user.status === 'inactive' ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                          {user.status || 'active'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        {canManageUsers ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => askConfirm('toggleStatus', { id: user.id, status:user.status})}
+                              className="text-xs px-2.5 py-1.5 rounded-md bg-white/5 border border-white/10 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/30 transition-all uppercase tracking-wider font-semibold"
+                            >
+                              Toggle
+                            </button>
+
+                            <button
+                              onClick={() => askConfirm('resetPassword', {id: user.id})}
+                              className="text-xs px-2.5 py-1.5 rounded-md bg-white/5 border border-white/10 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all uppercase tracking-wider font-semibold"
+                            >
+                              Reset Pass
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenModal(user)}
+                              className="text-xs px-2.5 py-1.5 rounded-md bg-white/5 border border-white/10 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/30 transition-all uppercase tracking-wider font-semibold"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">View Only</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                   
-             <tbody>
-  {users.map((user) => (
-    <tr key={user.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-      {/* FIRST TD IN THE ROW */}
-      <td className="p-3">
-        <input
-          type="checkbox"
-          checked={selectedUserIds.includes(user.id)}
-          onChange={() => toggleUserSelection(user.id)}
-        />
-      </td>
-      <td className="p-3">{user.name}</td>
-    
-                    <td className="p-3 text-right">
-  {canManageUsers ? (
-    <div className="flex items-center justify-end gap-2">
-      <button
-        onClick={() => askConfirm('toggleStatus', { id: user.id, status:user.status})}
-        className="text-xs px-2 py-1 rounded bg-slate-800 text-cyan-400 hover:bg-slate-700"
-      >
-        Toggle ({user.status || 'active'})
-      </button>
+                  {filteredUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-gray-500 border-2 border-dashed border-gray-800 rounded-xl">
+                        <p className="text-sm tracking-widest uppercase mt-4">No users match your search.</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-      <button
-        onClick={() => askConfirm('resetPassword', {id: user.id})}
-        className="text-xs px-2 py-1 rounded bg-slate-800 text-amber-400 hover:bg-slate-700"
-      >
-        Reset Password
-      </button>
-
-      <button
-        onClick={() => handleOpenModal(user)}
-        className="text-xs px-2 py-1 rounded bg-slate-800 text-gray-400 hover:text-cyan-400"
-      >
-        Edit
-      </button>
-    </div>
-  ) : (
-    <span className="text-xs text-slate-500">View Only</span>
-  )}
-</td>
-                  </tr>
-                ))}
-                
-                {filteredUsers.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-400">
-                      No users match your search.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-
-            {/* 5. Pagination UI Controls */}
+            {/* Pagination UI Controls - shrink-0 */}
             {totalPages > 0 && (
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-800/60">
+              <div className="shrink-0 flex flex-col sm:flex-row justify-between items-center gap-4 mt-2 pt-4 border-t border-gray-800/60">
                 <span className="text-xs text-gray-500 font-medium tracking-wide">
                   Showing <strong className="text-gray-300">{indexOfFirstItem + 1}</strong> to <strong className="text-gray-300">{Math.min(indexOfLastItem, filteredUsers.length)}</strong> of <strong className="text-gray-300">{filteredUsers.length}</strong> users
                 </span>
@@ -337,24 +361,28 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
                 </div>
               </div>
             )}
-          </div>
           </>
         )}
       </div>
-<RBACMatrix />
+      
+      {/* RBAC Matrix - shrink-0 to prevent squishing */}
+      <div className="shrink-0">
+        <RBACMatrix />
+      </div>
 
-        <ConfirmDialog
-          open={confirmState.open}
-          title="Confirm action"
-          message={
-            confirmState.action === 'bulkRole'
-              ? `Apply role "${selectedRole}" to ${selectedUserIds.length} selected user(s)?`
-              : `Are you sure you want to proceed for this user?`
-          }
-          danger={confirmState.action === 'toggleStatus'}
-          onConfirm={handleConfirmed}
-          onCancel={() => setConfirmState({ open: false, action: null, payload: null })}
-        />
+      <ConfirmDialog
+        open={confirmState.open}
+        title="Confirm action"
+        message={
+          confirmState.action === 'bulkRole'
+            ? `Apply role "${selectedRole}" to ${selectedUserIds.length} selected user(s)?`
+            : `Are you sure you want to proceed for this user?`
+        }
+        danger={confirmState.action === 'toggleStatus'}
+        onConfirm={handleConfirmed}
+        onCancel={() => setConfirmState({ open: false, action: null, payload: null })}
+      />
+      
       <UserModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

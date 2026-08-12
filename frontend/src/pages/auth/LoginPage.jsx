@@ -9,6 +9,7 @@ import Branding from '../../components/auth/Branding';
 import FeedbackHeader from '../../components/auth/FeedbackHeader';
 import ErrorAlert from '../../components/auth/ErrorAlert';
 import CodeTerminal from '../../components/auth/CodeTerminal';
+import { getLoginErrorMessage } from '../../utils/authErrors';
 
 const ROLE_HOME = {
   Learner: '/learner',
@@ -71,7 +72,7 @@ export default function LoginPage() {
 
           <Branding size="medium" />
 
-          <ErrorAlert message={toSystemError(error)} />
+          <ErrorAlert message={getLoginErrorMessage(error)} />
 
           <FeedbackHeader
             title="Login to continue your learning journey"
@@ -80,7 +81,7 @@ export default function LoginPage() {
             align="left"
           />
 
-          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-4">
             <InputField
               label="Email"
               id="email"
@@ -122,28 +123,19 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <div className="w-full max-w-md bg-[#232326] border border-[#3A3A3E] p-6 rounded-2xl text-center space-y-4">
+        <div className="w-full max-w-md bg-gray-900 border border-gray-800 p-6 rounded-2xl text-center space-y-1">
           <p className="text-sm text-gray-400">
             Don't have an account?{' '}
-            <Link to="/register" className="text-[#C77DFF] font-semibold hover:text-[#A435F0] transition-colors">
+            <Link to="/register" className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors">
               Sign up
             </Link>
           </p>
+          <p className="text-sm text-gray-400">
+            <Link to="/" className="text-[#C77DFF] font-semibold hover:text-[#A435F0] transition-colors">
+              ← Back to Home Page
+            </Link>
+          </p>
         </div>
-
-        <p className="text-sm text-gray-400 mt-4">
-          Are you an administrator?{' '}
-          <Link to="/login" className="text-[#C77DFF] font-semibold hover:text-[#A435F0] transition-colors">
-            Admin Login
-          </Link>
-        </p>
-
-        <p className="text-[11px] lg:text-xs text-center text-gray-500 mt-6 lg:mt-8">
-          Encountering anomalies?{' '}
-          <a href="#" className="text-gray-300 hover:text-white underline decoration-gray-600 underline-offset-4">
-            Contact System Admin
-          </a>
-        </p>
       </div>
     </div>
   );
