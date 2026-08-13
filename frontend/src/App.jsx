@@ -6,9 +6,6 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import LandingPage from "./pages/public/Landingpage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
-import AdminRoutes from "./routes/AdminRoutes";
-
-// Your LMS Routes
 import AppRoutes from "./routes/AppRoutes";
 
 function RolePlaceholder({ label }) {
@@ -27,20 +24,18 @@ function App() {
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
       <Route
         path="/org-login"
-        element={<RolePlaceholder label="Organization login" />}
+        element={<RolePlaceholder label="Organization Login" />}
       />
 
-      {/* Admin Routes */}
+      {/* Admin */}
       <Route
         path="/admin/*"
         element={
           <ProtectedRoute allowedRoles={["Admin"]}>
-            <>
-              <AdminRoutes />
-              <AppRoutes />
-            </>
+            <AppRoutes />
           </ProtectedRoute>
         }
       />
@@ -69,13 +64,13 @@ function App() {
       <Route
         path="/ta/*"
         element={
-          <ProtectedRoute allowedRoles={["Ta"]}>
+          <ProtectedRoute allowedRoles={["TA"]}>
             <RolePlaceholder label="TA" />
           </ProtectedRoute>
         }
       />
 
-      {/* Fallback */}
+      {/* 404 */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
