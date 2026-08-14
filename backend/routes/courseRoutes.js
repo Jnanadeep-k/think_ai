@@ -8,8 +8,22 @@ const {
     createCourse,
     updateCourse,
     deleteCourse,
-    getCourseBatches
+    getCourseBatches,
+    getCourseContent
 } = require("../controllers/courseController");
+
+
+// Course validations
+const {
+    validateCourseCreate,
+    validateCourseUpdate,
+    validateCourseId
+} = require("../validations/courseValidation");
+
+
+// ----------------------------------------------------
+// Swagger
+// ----------------------------------------------------
 
 /**
  * @swagger
@@ -18,17 +32,69 @@ const {
  *   description: Course Management APIs
  */
 
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/content:
+ *   get:
+ *     summary: Get complete course content
+ *     description: Get course details including thumbnail, course video, instructor details, modules and lessons with lesson videos.
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Course content retrieved successfully
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+    "/:courseId/content",
+    validateCourseId,
+    getCourseContent
+);
+
+
 /**
  * @swagger
  * /api/courses:
  *   get:
  *     summary: Get all courses
  *     tags: [Courses]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         example: 10
+ *       - in: query
+ *         name: search
+ *         required: false
+ *         schema:
+ *           type: string
+ *         example: Node
  *     responses:
  *       200:
  *         description: List of courses
  */
 router.get("/", getCourses);
+
 
 /**
  * @swagger
@@ -49,7 +115,12 @@ router.get("/", getCourses);
  *       404:
  *         description: Course not found
  */
-router.get("/:id", getCourseById);
+router.get(
+    "/:id",
+    validateCourseId,
+    getCourseById
+);
+
 
 /**
  * @swagger
@@ -87,15 +158,33 @@ router.get("/:id", getCourseById);
  *                 example: 60 Hours
  *               thumbnail:
  *                 type: string
- *                 example: node.png
+ *                 example: https://example.com/node-thumbnail.jpg
+ *               videoUrl:
+ *                 type: string
+ *                 example: https://example.com/node-course-intro.mp4
+ *               instructorName:
+ *                 type: string
+ *                 example: John Doe
+ *               instructorDetails:
+ *                 type: string
+ *                 example: Senior Backend Developer with 8 years of experience
  *               status:
  *                 type: string
  *                 example: ACTIVE
  *     responses:
  *       201:
  *         description: Course created successfully
+ *       400:
+ *         description: Course validation failed
+ *       500:
+ *         description: Internal server error
  */
-router.post("/", createCourse);
+router.post(
+    "/",
+    validateCourseCreate,
+    createCourse
+);
+
 
 /**
  * @swagger
@@ -122,7 +211,7 @@ router.post("/", createCourse);
  *                 example: Advanced Node.js
  *               description:
  *                 type: string
- *                 example: Updated Course
+ *                 example: Updated Node.js Course
  *               category:
  *                 type: string
  *                 example: Backend
@@ -134,15 +223,36 @@ router.post("/", createCourse);
  *                 example: 70 Hours
  *               thumbnail:
  *                 type: string
- *                 example: node-new.png
+ *                 example: https://example.com/node-new-thumbnail.jpg
+ *               videoUrl:
+ *                 type: string
+ *                 example: https://example.com/node-course-new-intro.mp4
+ *               instructorName:
+ *                 type: string
+ *                 example: Jane Smith
+ *               instructorDetails:
+ *                 type: string
+ *                 example: Full Stack Developer with 10 years of experience
  *               status:
  *                 type: string
  *                 example: ACTIVE
  *     responses:
  *       200:
  *         description: Course updated successfully
+ *       400:
+ *         description: Course validation failed
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Internal server error
  */
-router.put("/:id", updateCourse);
+router.put(
+    "/:id",
+    validateCourseId,
+    validateCourseUpdate,
+    updateCourse
+);
+
 
 /**
  * @swagger
@@ -163,7 +273,12 @@ router.put("/:id", updateCourse);
  *       404:
  *         description: Course not found
  */
-router.delete("/:id", deleteCourse);
+router.delete(
+    "/:id",
+    validateCourseId,
+    deleteCourse
+);
+
 
 /**
  * @swagger
@@ -182,6 +297,11 @@ router.delete("/:id", deleteCourse);
  *       200:
  *         description: List of batches
  */
-router.get("/:courseId/batches", getCourseBatches);
+router.get(
+    "/:courseId/batches",
+    validateCourseId,
+    getCourseBatches
+);
+
 
 module.exports = router;

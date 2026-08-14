@@ -10,12 +10,20 @@ const {
     deleteEnrollment
 } = require("../controllers/enrollmentController");
 
+const {
+    validateEnrollmentCreate,
+    validateEnrollmentUpdate,
+    validateEnrollmentId
+} = require("../validations/enrollmentValidation");
+
+
 /**
  * @swagger
  * tags:
  *   name: Enrollments
  *   description: Enrollment Management APIs
  */
+
 
 /**
  * @swagger
@@ -28,6 +36,7 @@ const {
  *         description: List of enrollments
  */
 router.get("/", getEnrollments);
+
 
 /**
  * @swagger
@@ -45,10 +54,17 @@ router.get("/", getEnrollments);
  *     responses:
  *       200:
  *         description: Enrollment details
+ *       400:
+ *         description: Invalid enrollment ID
  *       404:
  *         description: Enrollment not found
  */
-router.get("/:id", getEnrollmentById);
+router.get(
+    "/:id",
+    validateEnrollmentId,
+    getEnrollmentById
+);
+
 
 /**
  * @swagger
@@ -82,8 +98,15 @@ router.get("/:id", getEnrollmentById);
  *     responses:
  *       201:
  *         description: Enrollment created successfully
+ *       400:
+ *         description: Enrollment validation failed
  */
-router.post("/", createEnrollment);
+router.post(
+    "/",
+    validateEnrollmentCreate,
+    createEnrollment
+);
+
 
 /**
  * @swagger
@@ -120,10 +143,18 @@ router.post("/", createEnrollment);
  *     responses:
  *       200:
  *         description: Enrollment updated successfully
+ *       400:
+ *         description: Enrollment validation failed
  *       404:
  *         description: Enrollment not found
  */
-router.put("/:id", updateEnrollment);
+router.put(
+    "/:id",
+    validateEnrollmentId,
+    validateEnrollmentUpdate,
+    updateEnrollment
+);
+
 
 /**
  * @swagger
@@ -141,9 +172,16 @@ router.put("/:id", updateEnrollment);
  *     responses:
  *       200:
  *         description: Enrollment deleted successfully
+ *       400:
+ *         description: Invalid enrollment ID
  *       404:
  *         description: Enrollment not found
  */
-router.delete("/:id", deleteEnrollment);
+router.delete(
+    "/:id",
+    validateEnrollmentId,
+    deleteEnrollment
+);
+
 
 module.exports = router;
