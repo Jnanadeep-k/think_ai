@@ -4,16 +4,16 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import LandingPage from "./pages/public/Landingpage";
+import LandingPage from "./pages/public/LandingPage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoutes from "./routes/AdminRoutes";
+import LearnerRoutes from "./routes/LearnerRoutes";
 
 import { fetchCurrentUser } from "./features/auth/authSlice";
 import RolePlaceholder from "./components/common/RolePlaceholder";
-import CoursePlayer from "./pages/learner/CoursePlayer";
-import LearnerLayout from "./layouts/LearnerLayout";
-import LearnerDashboard  from "./pages/learner/LearnerDashboard"
+import LearnerCoursesPage from "./pages/learner/LearnerCoursesPage";
+import { ThemeProvider } from './components/ThemeContext';
 
 function App() {
   const dispatch = useDispatch();
@@ -27,17 +27,15 @@ function App() {
   }, [dispatch, token, isAuthenticated]);
 
   return (
+    <ThemeProvider>
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/home" element={<Navigate to="/" replace />} />
+      <Route path="courses" element={<LearnerCoursesPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-
-      <Route
-        path="/org-login"
-        element={<RolePlaceholder label="Organization Login" />}
-      />
+      <Route path="/org-login" element={<RolePlaceholder label="Organization Login" />} />
 
       {/* Admin */}
       <Route
@@ -51,16 +49,13 @@ function App() {
 
       {/* Learner */}
       <Route
-        path="/learner"
+        path="/learner/*"
         element={
-          <ProtectedRoute allowedRoles={["Learner"]}>
-            <LearnerLayout />
+          <ProtectedRoute allowedRoles={["Learner","Admin"]}>
+            <LearnerRoutes />
           </ProtectedRoute>
         }
-      >
-        <Route index element={<LearnerDashboard />} />
-        <Route path="courses/:courseId" element={<CoursePlayer />} />
-      </Route>
+      />
 
       {/* Instructor */}
       <Route
@@ -85,6 +80,7 @@ function App() {
       {/* 404 */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    </ThemeProvider>
   );
 }
 

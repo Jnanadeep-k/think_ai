@@ -1,5 +1,5 @@
 import React from "react";
-import "./button.css";
+import "./Button.css";
 
 /**
  * Ticket-punch styled button. The small circular "hole" on the left acts

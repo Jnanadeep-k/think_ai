@@ -8,7 +8,6 @@ import Checkbox from '../../components/common/Checkbox';
 import Branding from '../../components/auth/Branding';
 import FeedbackHeader from '../../components/auth/FeedbackHeader';
 import ErrorAlert from '../../components/auth/ErrorAlert';
-import CodeTerminal from '../../components/auth/CodeTerminal';
 import { getLoginErrorMessage } from '../../utils/authErrors';
 
 const ROLE_HOME = {
@@ -17,14 +16,6 @@ const ROLE_HOME = {
   TA: '/ta',
   Admin: '/admin',
 };
-
-function toSystemError(message) {
-  if (!message) return null;
-  if (message.toLowerCase().includes('invalid')) {
-    return `SYSTEM_AUTH_ERR_001: ${message} — neural sequence mismatch. Please re-authenticate.`;
-  }
-  return `SYSTEM_AUTH_ERR_000: ${message}`;
-}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -57,18 +48,40 @@ export default function LoginPage() {
   const sessionExpired = params.get('expired');
 
   return (
-    <div className="h-screen w-full grid md:grid-cols-2 bg-[#1C1D1F] text-white relative overflow-hidden">
-      <div className="absolute rounded-full blur-3xl top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-[#A435F0]/25 pointer-events-none" />
-      <div className="absolute rounded-full blur-3xl bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-[#6D28D9]/20 pointer-events-none" />
+    <div className="h-screen w-full grid md:grid-cols-2 bg-[#0B0F19] text-white relative overflow-hidden">
+      <div className="absolute rounded-full blur-3xl top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-indigo-600/25 pointer-events-none" />
+      <div className="absolute rounded-full blur-3xl bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-cyan-600/20 pointer-events-none" />
       <div className="absolute inset-0 bg-grid-masked pointer-events-none" />
 
-      <div className="hidden md:flex h-full flex-col justify-center items-center p-8 relative z-10">
-        <CodeTerminal />
+      {/* Left Column: Software Learner Showcase / Slogan */}
+      <div className="hidden md:flex flex-col justify-center px-12 lg:px-20 relative z-10 space-y-6 border-r border-white/10 bg-gradient-to-br from-indigo-950/20 via-transparent to-cyan-950/20">
+        <div className="space-y-4 max-w-lg">
+          <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
+            Continue building your future in <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Software Engineering</span>.
+          </h1>
+          
+          <p className="text-slate-400 text-base leading-relaxed">
+            Pick up right where you left off. Dive into your course catalog, test code in the live sandbox, and level up your backend &amp; full-stack skills.
+          </p>
+
+          {/* Feature Highlights Grid */}
+          <div className="grid grid-cols-2 gap-4 pt-4">
+            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-xl space-y-1">
+              <p className="font-mono text-cyan-400 text-sm font-bold">01 / Resume</p>
+              <p className="text-xs text-slate-300">Seamless tracking across all active modules.</p>
+            </div>
+            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-xl space-y-1">
+              <p className="font-mono text-indigo-400 text-sm font-bold">02 / Execute</p>
+              <p className="text-xs text-slate-300">Instant validation through integrated compilers.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="flex h-full flex-col items-center justify-center p-6 relative z-10">
+      {/* Right Column: Login Form */}
+      <div className="flex h-full flex-col items-center justify-center p-6 relative z-10 overflow-y-auto">
         <div className="glass-panel w-full max-w-md p-8 lg:p-10 rounded-2xl relative mb-6">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#A435F0]/50 to-transparent" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
 
           <Branding size="medium" />
 
@@ -123,7 +136,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <div className="w-full max-w-md bg-gray-900 border border-gray-800 p-6 rounded-2xl text-center space-y-1">
+        <div className="w-full max-w-md bg-gray-900 border border-gray-800 p-6 rounded-2xl text-center space-y-2">
           <p className="text-sm text-gray-400">
             Don't have an account?{' '}
             <Link to="/register" className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors">

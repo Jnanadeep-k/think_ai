@@ -7,7 +7,6 @@ import Button from '../../components/common/Button';
 import Branding from '../../components/auth/Branding';
 import FeedbackHeader from '../../components/auth/FeedbackHeader';
 import ErrorAlert from '../../components/auth/ErrorAlert';
-import CodeTerminal from '../../components/auth/CodeTerminal';
 import { getRegisterErrorMessage } from '../../utils/authErrors';
 
 export default function RegisterPage() {
@@ -35,11 +34,33 @@ export default function RegisterPage() {
       <div className="ambient-glow animate-float-delayed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-cyan-600/20" />
       <div className="absolute inset-0 bg-grid-masked pointer-events-none" />
 
-      <div className="hidden md:flex h-full flex-col justify-center items-center p-8 relative z-10">
-        <CodeTerminal />
+      {/* Left Column: Software Learner Showcase / Slogan */}
+      <div className="hidden md:flex flex-col justify-center px-12 lg:px-20 relative z-10 space-y-6 border-r border-white/10 bg-gradient-to-br from-indigo-950/20 via-transparent to-cyan-950/20">
+        <div className="space-y-4 max-w-lg">
+          <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
+            Build your path in <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Software Engineering</span>.
+          </h1>
+          
+          <p className="text-slate-400 text-base leading-relaxed">
+            Master full-stack systems, clean architecture, and interactive coding environments designed for high-performance learners and backend builders.
+          </p>
+
+          {/* Feature Highlights Grid */}
+          <div className="grid grid-cols-2 gap-4 pt-4">
+            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-xl space-y-1">
+              <p className="font-mono text-cyan-400 text-sm font-bold">01 / Code</p>
+              <p className="text-xs text-slate-300">Live multi-language compiler &amp; sandbox environments.</p>
+            </div>
+            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-xl space-y-1">
+              <p className="font-mono text-indigo-400 text-sm font-bold">02 / Scale</p>
+              <p className="text-xs text-slate-300">Architect scalable systems with structured modules.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="flex h-full flex-col items-center justify-center p-6 relative z-10">
+      {/* Right Column: Registration Form */}
+      <div className="flex h-full flex-col items-center justify-center p-6 relative z-10 overflow-y-auto">
         <div className="glass-panel w-full max-w-md p-8 lg:p-10 rounded-2xl relative mb-6">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
 

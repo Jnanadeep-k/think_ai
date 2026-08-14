@@ -28,47 +28,92 @@ export default function CoursePlayer() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const videoRef = useRef(null);
+  const videoContainerRef = useRef(null);
 
   // State
   const [activeModule, setActiveModule] = useState(MOCK_COURSE.modules[0].id);
   const [currentLesson, setCurrentLesson] = useState(MOCK_COURSE.modules[0].lessons[0]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [feedback, setFeedback] = useState(null); // Animation feedback text
 
   // Flatten lessons for easy next/prev navigation
   const allLessons = MOCK_COURSE.modules.flatMap(m => m.lessons);
   const currentIndex = allLessons.findIndex(l => l.id === currentLesson.id);
 
-  // Keyboard Shortcuts (Space, Left, Right)
+  // Show temporary animation feedback overlay
+  const showFeedback = (text) => {
+    setFeedback(text);
+    setTimeout(() => {
+      setFeedback(null);
+    }, 800);
+  };
+
+  // Keyboard Shortcuts Handler
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Prevent scrolling when pressing space
-      if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+      // Prevent shortcut action if typing in inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      const video = videoRef.current;
+      if (!video) return;
+
+      // Space: Play/Pause
+      if (e.code === 'Space') {
         e.preventDefault();
-        if (videoRef.current) {
-          if (videoRef.current.paused) {
-            videoRef.current.play();
-          } else {
-            videoRef.current.pause();
-          }
+        if (video.paused) {
+          video.play();
+        } else {
+          video.pause();
         }
       }
-      // Right Arrow: Next Lesson
+
+      // Right Arrow: Move forward 5 seconds
       if (e.code === 'ArrowRight') {
-        if (currentIndex < allLessons.length - 1) {
-          setCurrentLesson(allLessons[currentIndex + 1]);
-        }
+        e.preventDefault();
+        video.currentTime = Math.min(video.duration, video.currentTime + 5);
+        showFeedback('+5s ⏩');
       }
-      // Left Arrow: Previous Lesson
+
+      // Left Arrow: Move backward 5 seconds
       if (e.code === 'ArrowLeft') {
-        if (currentIndex > 0) {
-          setCurrentLesson(allLessons[currentIndex - 1]);
+        e.preventDefault();
+        video.currentTime = Math.max(0, video.currentTime - 5);
+        showFeedback('⏪ -5s');
+      }
+
+      // Up Arrow: Volume Up 5%
+      if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        const newVolume = Math.min(1, video.volume + 0.05);
+        video.volume = newVolume;
+        showFeedback(`Volume: ${Math.round(newVolume * 100)}% 🔊`);
+      }
+
+      // Down Arrow: Volume Down 5%
+      if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        const newVolume = Math.max(0, video.volume - 0.05);
+        video.volume = newVolume;
+        showFeedback(`Volume: ${Math.round(newVolume * 100)}% 🔉`);
+      }
+
+      // Key 'f' / 'F': Toggle Fullscreen
+      if (e.code === 'KeyF' || e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        const container = videoContainerRef.current;
+        if (!document.fullscreenElement) {
+          container?.requestFullscreen?.();
+          showFeedback('Fullscreen ON ⛶');
+        } else {
+          document.exitFullscreen?.();
+          showFeedback('Fullscreen OFF ⛶');
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, allLessons]);
+  }, []);
 
   // Sync video playing state
   const handlePlayPause = () => setIsPlaying(!videoRef.current?.paused);
@@ -78,16 +123,30 @@ export default function CoursePlayer() {
       
       {/* LEFT SIDE: Video Player & Info */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
-        <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 transition-colors">
+        <div 
+          ref={videoContainerRef}
+          className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 transition-colors group flex items-center justify-center"
+        >
           <video
             ref={videoRef}
             src={currentLesson.videoUrl}
             className="w-full h-full object-cover"
             controls
+            controlsList="nodownload"
+            onContextMenu={(e) => e.preventDefault()}
             autoPlay
             onPlay={handlePlayPause}
             onPause={handlePlayPause}
           />
+
+          {/* Animated Feedback Overlay */}
+          {feedback && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+              <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl text-lg font-semibold shadow-2xl animate-ping-once transition-all duration-300 border border-white/10">
+                {feedback}
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="bg-white dark:bg-[#151025]/50 backdrop-blur-md rounded-2xl p-6 border border-gray-200 dark:border-purple-500/20 shadow-sm transition-colors">
@@ -97,10 +156,11 @@ export default function CoursePlayer() {
           <p className="text-gray-600 dark:text-purple-300/70 text-sm">
             {MOCK_COURSE.title} • Module {activeModule.replace('m', '')}
           </p>
-          <div className="mt-4 flex gap-4 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             <span><kbd className="px-2 py-1 bg-gray-100 dark:bg-white/10 rounded mr-1">Space</kbd> Play/Pause</span>
-            <span><kbd className="px-2 py-1 bg-gray-100 dark:bg-white/10 rounded mr-1">←</kbd> Prev</span>
-            <span><kbd className="px-2 py-1 bg-gray-100 dark:bg-white/10 rounded mr-1">→</kbd> Next</span>
+            <span><kbd className="px-2 py-1 bg-gray-100 dark:bg-white/10 rounded mr-1">← / →</kbd> ±5s Seek</span>
+            <span><kbd className="px-2 py-1 bg-gray-100 dark:bg-white/10 rounded mr-1">↑ / ↓</kbd> Vol ±5%</span>
+            <span><kbd className="px-2 py-1 bg-gray-100 dark:bg-white/10 rounded mr-1">F</kbd> Fullscreen</span>
           </div>
         </div>
       </div>

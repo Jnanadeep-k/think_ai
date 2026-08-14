@@ -1,85 +1,128 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, selectUser } from '../features/auth/authSlice';
+import { useTheme } from '../components/ThemeContext';
 
 export default function LearnerLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector(selectUser);
-  
-  // Dark mode state prep for Step 2
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const { isDarkMode, toggleTheme } = useTheme();
 
-  // Toggle Dark Mode (will attach to context/redux later)
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  };
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const isAdmin = user?.role === 'Admin' || user?.role === 'ADMIN' || user?.isAdmin;
 
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
   };
 
+  const handleLinkClick = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0c0914] text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
-      
+    <div className={`min-h-screen h-screen flex flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0b0e14] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+
       {/* Top Navigation Bar */}
-      <nav className={`sticky top-0 z-50 border-b backdrop-blur-md ${isDarkMode ? 'bg-[#151025]/80 border-purple-500/20' : 'bg-white/80 border-gray-200'} transition-colors duration-300`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="shrink-0 z-50 border-b backdrop-blur-md bg-[#0b0e14] border-white/10 text-slate-100 transition-colors duration-300">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            
-            {/* Logo & Main Links */}
-            <div className="flex items-center gap-8">
-              <Link to="/learner" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-400 to-indigo-500 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.4)]">
-                  <span className="font-bold text-white text-xl leading-none">tz</span>
-                </div>
-                <span className={`font-bold text-xl tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>thinkz ai</span>
+
+            {/* Logo, Desktop Nav Links & Admin Return Button */}
+            <div className="flex items-center gap-6 sm:gap-8">
+              <Link to="/learner" className="flex items-center gap-2.5 font-bold tracking-tight text-lg">
+                <span className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-mono text-xs font-bold shadow-[0_0_12px_rgba(147,51,235,0.4)]">tz</span>
+                <span className="text-white tracking-normal font-bold text-xl">Thinkz<span className="text-purple-500 font-bold">.ai</span></span>
               </Link>
-              
-              <div className="hidden md:flex space-x-6">
-                <Link to="/learner" className={`text-sm font-medium hover:text-cyan-400 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>My Dashboard</Link>
-                <Link to="/learner/courses" className={`text-sm font-medium hover:text-cyan-400 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Catalog</Link>
-              </div>
+
+              <nav className="hidden md:flex items-center space-x-6">
+                <Link to="/learner" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">My Dashboard</Link>
+                <Link to="/learner/courses" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Courses</Link>
+                <Link to="/learner/assignments" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Assignments</Link>
+                <Link to="/learner/playground" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Playground</Link>
+                <Link to="/learner/certificates" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Certificates</Link>
+                <Link to="/learner/live" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Live Classes</Link>
+              </nav>
             </div>
 
-            {/* Right Side: Theme Toggle & User Profile */}
-            <div className="flex items-center gap-4">
-              <button 
+            {/* Right Side Tools */}
+            <div className="flex items-center gap-3">
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/admin/dashboard')}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 border border-purple-500/30 text-purple-300 hover:bg-purple-600/30 transition-colors text-xs font-semibold cursor-pointer"
+                  title="Switch back to Admin Console"
+                >
+                  <span>&larr; Admin Console</span>
+                </button>
+              )}
+
+              <button
                 onClick={toggleTheme}
-                className={`p-2 rounded-full transition-colors ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-yellow-400' : 'bg-gray-200 hover:bg-gray-300 text-indigo-900'}`}
-                title="Toggle Dark Mode"
+                className="p-1.5 rounded-full transition-colors bg-white/5 hover:bg-white/10 text-amber-400 cursor-pointer text-xs"
+                title="Toggle Theme"
               >
-                {isDarkMode ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                )}
+                {isDarkMode ? '☀️ Light' : '🌙 Dark'}
               </button>
 
-              <div className="flex items-center gap-3 pl-4 border-l border-gray-500/30">
-                <span className={`text-sm font-medium hidden sm:block ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {user?.name || 'Learner'}
+              <div className="flex items-center gap-3 pl-2 sm:pl-4 sm:border-l sm:border-white/10">
+                <span className="text-sm font-medium hidden sm:block text-slate-200">
+                  {user?.name || 'Alex Rivera'}
                 </span>
-                <button 
+                <button
                   onClick={handleLogout}
-                  className="text-xs uppercase tracking-wider font-bold text-rose-400 hover:text-rose-300 transition-colors"
+                  className="text-xs uppercase tracking-wider font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer hidden sm:block"
                 >
                   Logout
                 </button>
               </div>
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:text-white focus:outline-none cursor-pointer"
+                aria-label="Toggle Menu"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {isMobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
             </div>
 
           </div>
         </div>
-      </nav>
+
+        {/* Mobile Dropdown Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-[#0b0e14] text-slate-100 border-b border-white/10 px-4 py-4 space-y-3 shadow-xl">
+            {isAdmin && (
+              <button
+                onClick={() => { handleLinkClick(); navigate('/admin/dashboard'); }}
+                className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-purple-600/20 text-purple-300 border border-purple-500/30"
+              >
+                &larr; Back to Admin Console
+              </button>
+            )}
+            <Link to="/learner" onClick={handleLinkClick} className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">My Dashboard</Link>
+            <Link to="/learner/courses" onClick={handleLinkClick} className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Courses</Link>
+            <Link to="/learner/assignments" onClick={handleLinkClick} className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Assignments</Link>
+            <Link to="/learner/playground" onClick={handleLinkClick} className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Playground</Link>
+            <Link to="/learner/certificates" onClick={handleLinkClick} className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Certificates</Link>
+            
+          </div>
+        )}
+      </header>
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Child routes (Dashboard, Course Player) will render here */}
-        <Outlet /> 
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto overflow-x-hidden">
+        <Outlet />
       </main>
 
     </div>
