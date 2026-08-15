@@ -1,7 +1,6 @@
 const repository = require("../repositories/courseRepository");
 
 const getAllCourses = async (page, limit, search) => {
-
     const skip = (page - 1) * limit;
 
     return await repository.getAllCourses(
@@ -31,11 +30,17 @@ const getCourseBatches = async (courseId) => {
     return await repository.getCourseBatches(Number(courseId));
 };
 
+/* Get course content */
+const getCourseContent = async (courseId) => {
+    return await repository.getCourseContent(Number(courseId));
+};
+
 module.exports = {
     getAllCourses,
     getCourseById,
     createCourse,
     updateCourse,
     deleteCourse,
-    getCourseBatches
+    getCourseBatches,
+    getCourseContent
 };
