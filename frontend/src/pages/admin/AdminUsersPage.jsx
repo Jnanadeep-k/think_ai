@@ -45,11 +45,10 @@ export default function AdminUsersPage() {
   // State for bulk selection and role assignment
 const [selectedUserIds, setSelectedUserIds] = useState([]);
 const [selectedRole, setSelectedRole] = useState('');
-const [confirmstate, setconfirmstate] = useState({ open: false, action: null, payload: null });
+const [ConfirmState, setConfirmState] = useState({ open: false, action: null, payload: null });
 
 // RBAC permission check using your imported hook
-const { hasPermission } = usePermission();
-const canManageUsers = hasPermission('manage_users') || hasPermission('admin');
+const canManageUsers = usePermission('manage_users') || usePermission('admin');
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
@@ -118,7 +117,7 @@ const toggleUserSelection = (userId) => {
 const askConfirm = (action, payload) => setConfirmState({ open: true, action, payload });
 
   const handleConfirmed = async () => {
-    const { action, payload } = confirmState;
+    const { action, payload } = ConfirmState;
     if (action === 'toggleStatus') await handleStatusToggle(payload.id, payload.status);
     if (action === 'resetPassword') await handlePasswordReset(payload.id);
     if (action === 'bulkRole') await handleBulkRoleAssign();
@@ -281,14 +280,14 @@ const askConfirm = (action, payload) => setConfirmState({ open: true, action, pa
 <RBACMatrix />
 
         <ConfirmDialog
-          open={confirmState.open}
+          open={ConfirmState.open}
           title="Confirm action"
           message={
-            confirmState.action === 'bulkRole'
+            ConfirmState.action === 'bulkRole'
               ? `Apply role "${selectedRole}" to ${selectedUserIds.length} selected user(s)?`
               : `Are you sure you want to proceed for this user?`
           }
-          danger={confirmState.action === 'toggleStatus'}
+          danger={ConfirmState.action === 'toggleStatus'}
           onConfirm={handleConfirmed}
           onCancel={() => setConfirmState({ open: false, action: null, payload: null })}
         />

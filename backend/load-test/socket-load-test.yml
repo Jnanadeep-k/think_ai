@@ -1,0 +1,24 @@
+config:
+  target: "http://localhost:3000"
+  engines:
+    socketio-v3: {}
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      rampTo: 15
+      name: "Warm up"
+    - duration: 90
+      arrivalRate: 20
+      name: "Sustained 100+ concurrent"
+
+scenarios:
+  - engine: socketio-v3
+    flow:
+      - emit:
+          channel: "room:join"
+          data: "load-test-room"
+      - think: 5
+      - emit:
+          channel: "room:leave"
+          data: "load-test-room"
+      - think: 1

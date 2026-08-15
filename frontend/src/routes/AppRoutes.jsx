@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {  Routes, Route } from "react-router-dom";
 
 import Layout from "../components/layout/Layout";
 
@@ -25,7 +25,7 @@ import EnrollmentDetails from "../pages/enrollments/EnrollmentDetails";
 
 function AppRoutes() {
   return (
-    <BrowserRouter>
+    
 
       <Routes>
 
@@ -88,7 +88,7 @@ function AppRoutes() {
 
       </Routes>
 
-    </BrowserRouter>
+  
   );
 }
 
