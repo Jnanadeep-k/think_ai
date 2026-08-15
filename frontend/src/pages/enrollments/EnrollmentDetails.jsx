@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getEnrollmentById } from "../../api/enrollmentApi";
 import { DetailsSkeleton } from "../../components/common/LoadingSkeleton";
@@ -18,215 +18,96 @@ function EnrollmentDetails() {
   const loadEnrollment = async () => {
     try {
       setLoading(true);
-
       const response = await getEnrollmentById(id);
-
       setEnrollment(response.data.data);
     } catch (error) {
       console.error(error);
-
       toast.error("Failed to load enrollment");
-
       setEnrollment(null);
     } finally {
       setLoading(false);
     }
   };
 
-  // LOADING SKELETON
   if (loading) {
     return <DetailsSkeleton />;
   }
 
-  // NOT FOUND
   if (!enrollment) {
     return (
-      <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-12 text-center">
-
-        <div className="text-5xl mb-4">
-          👨‍🎓
+      <div className="flex justify-center items-center h-[70vh]">
+        <div className="text-cyan-400 text-xl font-semibold animate-pulse">
+          Loading Enrollment...
         </div>
-
-        <h2 className="text-2xl font-semibold text-gray-300">
-          Enrollment Not Found
-        </h2>
-
-        <p className="text-gray-500 mt-2">
-          The enrollment you are looking for does not exist.
-        </p>
-
-        <button
-          type="button"
-          onClick={() =>
-            navigate("/admin/enrollments")
-          }
-          className="mt-6 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl transition"
-        >
-          ← Back to Enrollments
-        </button>
-
       </div>
     );
   }
 
   return (
-    <div>
-
-      {/* HEADER */}
-
-      <div className="flex justify-between items-center mb-8">
-
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">
-            Enrollment Details
-          </h1>
-
-          <p className="text-gray-400 mt-1">
-            View complete enrollment information.
-          </p>
+          <h1 className="text-2xl font-semibold text-white">Enrollment Overview</h1>
+          <p className="text-sm text-gray-400 mt-1">View complete student enrollment information.</p>
         </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            navigate("/admin/enrollments")
-          }
-          className="px-5 py-3 rounded-xl bg-[#1A1F2B] border border-gray-700 text-cyan-400 hover:bg-[#22283A] transition"
-        >
-          ← Back
-        </button>
-
-      </div>
-
-      {/* ENROLLMENT DETAILS */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        {/* STUDENT NAME */}
-
-        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
-
-          <p className="text-gray-400 text-sm">
-            Student Name
-          </p>
-
-          <h2 className="text-white text-xl font-semibold mt-2">
-            {enrollment.studentName}
-          </h2>
-
-        </div>
-
-        {/* EMAIL */}
-
-        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
-
-          <p className="text-gray-400 text-sm">
-            Student Email
-          </p>
-
-          <h2 className="text-white text-xl font-semibold mt-2 break-all">
-            {enrollment.studentEmail}
-          </h2>
-
-        </div>
-
-        {/* BATCH */}
-
-        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
-
-          <p className="text-gray-400 text-sm">
-            Batch
-          </p>
-
-          <h2 className="text-white text-xl font-semibold mt-2">
-            {enrollment.batch?.name || "N/A"}
-          </h2>
-
-        </div>
-
-        {/* COURSE */}
-
-        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
-
-          <p className="text-gray-400 text-sm">
-            Course
-          </p>
-
-          <h2 className="text-white text-xl font-semibold mt-2">
-            {enrollment.batch?.course?.title || "N/A"}
-          </h2>
-
-        </div>
-
-        {/* STATUS */}
-
-        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
-
-          <p className="text-gray-400 text-sm">
-            Enrollment Status
-          </p>
-
-          <span
-            className={`inline-block mt-2 px-4 py-2 rounded-full text-sm font-semibold ${
-              enrollment.enrollmentStatus ===
-                "ACTIVE" ||
-              enrollment.enrollmentStatus ===
-                "ENROLLED"
-                ? "bg-green-500/20 text-green-400"
-                : "bg-red-500/20 text-red-400"
-            }`}
+        <div className="flex items-center gap-3">
+          <Link
+            to={`/admin/enrollments/edit/${enrollment.id}`}
+            className="px-4 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-lg text-sm font-medium hover:bg-cyan-500/20 transition-colors"
           >
-            {enrollment.enrollmentStatus}
-          </span>
-
+            Edit Enrollment
+          </Link>
         </div>
-
-        {/* BATCH CAPACITY */}
-
-        <div className="bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
-
-          <p className="text-gray-400 text-sm">
-            Batch Capacity
-          </p>
-
-          <h2 className="text-white text-xl font-semibold mt-2">
-
-            {enrollment.batch?.enrollments
-              ? `${
-                  enrollment.batch.enrollments.filter(
-                    (item) =>
-                      item.enrollmentStatus ===
-                        "ACTIVE" ||
-                      item.enrollmentStatus ===
-                        "ENROLLED"
-                  ).length
-                }/${enrollment.batch.capacity}`
-              : enrollment.batch?.capacity || "-"}
-
-          </h2>
-
-        </div>
-
-        {/* ENROLLED ON */}
-
-        <div className="md:col-span-2 bg-[#1A1F2B] border border-gray-800 rounded-2xl p-6">
-
-          <p className="text-gray-400 text-sm">
-            Enrolled On
-          </p>
-
-          <h2 className="text-white text-xl font-semibold mt-2">
-            {enrollment.enrolledAt
-              ? new Date(
-                  enrollment.enrolledAt
-                ).toLocaleDateString()
-              : "-"}
-          </h2>
-
-        </div>
-
       </div>
 
+      <div className="bg-[#112435] border border-gray-800 rounded-2xl p-8 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl -z-10" />
+
+        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-32 h-32 rounded-full bg-cyan-500/20 border-2 border-teal-600 flex items-center justify-center text-3xl font-bold text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)] text-center p-4">
+              {(enrollment.studentName || 'S').charAt(0).toUpperCase()}
+            </div>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium tracking-wide border ${
+              enrollment.enrollmentStatus === "ACTIVE"
+                ? "bg-green-500/10 text-green-400 border-green-500/20"
+                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+            }`}>
+              {enrollment.enrollmentStatus}
+            </span>
+          </div>
+
+          <div className="flex-1 w-full space-y-6">
+            <div>
+              <p className="text-sm text-gray-400 mb-1">Student Name</p>
+              <p className="text-lg font-medium text-white">{enrollment.studentName}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-400 mb-1">Student Email</p>
+              <p className="text-lg text-white">{enrollment.studentEmail}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-400 mb-1">Assigned Batch</p>
+              <p className="text-lg text-cyan-400 font-medium">{enrollment.batch?.name || "N/A"}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-800/60">
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Associated Course</p>
+                <p className="text-white text-sm">{enrollment.batch?.course?.title || "-"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Enrolled On</p>
+                <p className="text-white text-sm">
+                  {enrollment.enrolledAt ? new Date(enrollment.enrolledAt).toLocaleDateString() : "-"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
