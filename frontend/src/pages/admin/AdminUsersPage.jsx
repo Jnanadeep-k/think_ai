@@ -49,13 +49,17 @@ export default function AdminUsersPage() {
   useSessionTimeout();
 
   // State for bulk selection and role assignment
-  const [selectedUserIds, setSelectedUserIds] = useState([]);
+
+const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [selectedRole, setSelectedRole] = useState('');
   const [confirmState, setConfirmState] = useState({ open: false, action: null, payload: null });
 
-  // RBAC permission check
-  const canManageUsers = usePermission('USER_MANAGEMENT');
-  
+  // RBAC permission check using your imported hook
+  const canManageUsers = usePermission('manage_users') || usePermission('admin');
+
+  useEffect(() => {
+    dispatch(fetchUsers());
+  }, [dispatch]);
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
@@ -146,7 +150,7 @@ export default function AdminUsersPage() {
   const askConfirm = (action, payload) => setConfirmState({ open: true, action, payload });
 
   const handleConfirmed = async () => {
-    const { action, payload } = confirmState;
+    const { action, payload } = ConfirmState;
     if (action === 'toggleStatus') await handleStatusToggle(payload.id, payload.status);
     if (action === 'resetPassword') await handlePasswordReset(payload.id);
     if (action === 'bulkRole') await handleBulkRoleAssign();
