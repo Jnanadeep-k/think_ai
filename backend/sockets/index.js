@@ -4,6 +4,9 @@ const RECONNECT_GRACE_MS = 30000; // 30 seconds to reconnect before we consider 
 // In-memory connection state tracking (swap for Redis later if needed)
 const activeConnections = new Map(); // socketId -> { userId, role, rooms: Set, connectedAt }
 const roomMembers = new Map();       // roomName -> Set of socketIds
+const activityRateLimits = new Map(); // socketId -> { count, windowStart }
+const RATE_LIMIT_MAX = 20;       // max events
+const RATE_LIMIT_WINDOW_MS = 10000; // per 10 seconds
 const EVENTS = require('./events');
 const sessionManager = require('./sessionManager');
 module.exports = function (io) {
@@ -21,8 +24,7 @@ module.exports = function (io) {
         // TEMP fallback for local/demo testing — mirrors REST x-demo-role pattern
         socket.user = { id: demoUserId, role: demoRole };
       } else {
-        // TEMP: allow anonymous connection for now so frontend devs aren't blocked
-        socket.user = { id: `anon-${socket.id}`, role: 'guest' };
+        return next(new Error('Authentication required: no token or demo role provided'));
       }
 
       next();
@@ -108,7 +110,17 @@ module.exports = function (io) {
     socket.on(EVENTS.USER_ACTIVITY, (payload) => {
       const { roomName, action } = payload || {};
       if (!roomName || !action) return;
-
+const now = Date.now();
+  const limit = activityRateLimits.get(socket.id) || { count: 0, windowStart: now };
+  if (now - limit.windowStart > RATE_LIMIT_WINDOW_MS) {
+    limit.count = 0;
+    limit.windowStart = now;
+  }
+  limit.count++;
+  activityRateLimits.set(socket.id, limit);
+  if (limit.count > RATE_LIMIT_MAX) {
+    return;
+  }
       socket.to(roomName).emit(EVENTS.USER_ACTIVITY, { userId, socketId: socket.id, roomName, action, timestamp: new Date().toISOString() });
 
       const userSessions = sessionManager.getSessionsForUser(userId).filter((s) => s.roomName === roomName);
@@ -135,6 +147,7 @@ module.exports = function (io) {
 
         disconnectedUsers.set(userId, { rooms: conn.rooms, disconnectedAt: new Date().toISOString(), timeoutHandle });
       }
+      activityRateLimits.delete(socket.id);
       activeConnections.delete(socket.id);
       console.log(`[socket] disconnected: ${socket.id} (reason: ${reason}) — grace period started`);
     });
