@@ -3,6 +3,7 @@ const router = express.Router();
 const { users } = require("../data/users");
 const { roles } = require("../data/roles");
 const requireRole = require("../middleware/requireRole");
+const { logRoleChange } = require("../services/auditLogService");
 /**
  * GET /admin/users
  * Lists every user, with their current role.
@@ -51,9 +52,17 @@ router.post("/users/:id/assign-role", requireRole(["Admin"]), (req, res) => {
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found" });
   }
+logRoleChange({
+    actorRole: req.user.role,
+    targetUserId: userId,
+    targetUserName: user.name,
+    oldRole: null,
+    newRole: role,
+  });
 
   user.role = role;
-  res.status(200).json({ success: true, message: "Role assigned", data: user });
+  res.status(200).json({ success: true, message: "Role assigned" });
+  
 });
 
 /**
@@ -79,6 +88,13 @@ router.put("/users/:id/role",requireRole(["Admin"]), (req, res) => {
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found" });
   }
+logRoleChange({
+    actorRole: req.user.role,
+    targetUserId: userId,
+    targetUserName: user.name,
+    oldRole: user.role,
+    newRole: role,
+  });
 
   user.role = role;
   res.status(200).json({ success: true, message: "Role updated", data: user });

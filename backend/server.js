@@ -5,15 +5,18 @@ require("./config/db");
 const swaggerUi = require("swagger-ui-express");
 //const swaggerSpec = require("./config/swagger");
 
+const roleMatrixRoutes = require("./routes/roleMatrix");
 const courseRoutes = require("./routes/courseRoutes");
 const batchRoutes = require("./routes/batchRoutes");
 const adminUsersRoutes = require("./routes/adminUsers");
+const auditLogRoutes = require("./routes/auditLog");
 //const enrollmentRoutes = require("./routes/enrollmentRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/roles",roleMatrixRoutes);
 
 app.get("/", (req, res) => {
     res.json({
@@ -27,6 +30,7 @@ app.use("/api/batches", batchRoutes);
 //app.use("/api/enrollments", enrollmentRoutes);
 const notificationPreferenceRoutes = require("./routes/notificationPreferences");
 app.use("/admin", adminUsersRoutes);
+app.use("/api/audit-log", auditLogRoutes);
 app.use("/api/notifications", notificationPreferenceRoutes);
 /*app.use(
     "/api-docs",
