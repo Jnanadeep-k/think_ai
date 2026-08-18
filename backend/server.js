@@ -31,9 +31,20 @@ app.use("/api/notifications", notificationPreferenceRoutes);
     swaggerUi.serve,
     swaggerUi.setup(swaggerSpec)
 );*/
+const http = require("http");
+const { Server } = require("socket.io");
+const initSockets = require("./sockets/index");
+
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: { origin: "*" },
+});
+initSockets(io);
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log("[socket] Socket.IO attached and listening");
 });
 startWorker();
 module.exports = app;

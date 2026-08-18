@@ -14,13 +14,13 @@ module.exports = function (io) {
   io.use((socket, next) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.headers['authorization'];
-      const demoRole = socket.handshake.headers['x-demo-role']; // same pattern as REST role-filtering
+      const demoRole = socket.handshake.headers['x-demo-role'] || socket.handshake.query["x-demo-role"];// same pattern as REST role-filtering
 
       if (token) {
         const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
         socket.user = { id: decoded.id || decoded.userId, role: decoded.role };
       } else if (demoRole) {
-        const demoUserId = socket.handshake.headers['x-demo-user-id'] || `demo-${socket.id}`;
+        const demoUserId = socket.handshake.headers['x-demo-user-id'] || socket.handshake.query["x-demo-user-id"];
         // TEMP fallback for local/demo testing — mirrors REST x-demo-role pattern
         socket.user = { id: demoUserId, role: demoRole };
       } else {
