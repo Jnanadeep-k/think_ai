@@ -9,7 +9,7 @@ const {
     updateEnrollment,
     deleteEnrollment
 } = require("../controllers/enrollmentController");
-
+const { createSession, getSessionById, updateSession, deleteSession } = require("../controllers/sessionController");
 /**
  * @swagger
  * tags:
@@ -145,5 +145,9 @@ router.put("/:id", updateEnrollment);
  *         description: Enrollment not found
  */
 router.delete("/:id", deleteEnrollment);
+router.post("/sessions", createSession);
+router.get("/sessions/:id", getSessionById);
+router.put("/sessions/:id", updateSession);
+router.delete("/sessions/:id", deleteSession);
 
 module.exports = router;
