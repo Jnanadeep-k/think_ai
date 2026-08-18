@@ -3,7 +3,7 @@ let sessions = [];
 let attendance = [];
 
 /**
- * 1. Create a New Live Session
+ * 1. Create a New Live Session (With Jitsi Integration & WebSockets)
  * POST /api/v1/sessions
  */
 const createSession = async (req, res) => {
@@ -15,45 +15,69 @@ const createSession = async (req, res) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
+        // PM Requirement: Mock Jitsi Room Creation
+        const cleanTitle = title.replace(/\s+/g, '-').toLowerCase();
+        const generatedMeetingLink = `https://jit.si{cleanTitle}-${Date.now()}`;
+
         const newSession = {
             id: Date.now().toString(), // Generate a unique ID string
             title,
             instructorId,
-            startTime: new Date(startTime),
+            startTime: new Date(startTime), // FIXED: added space to 'new Date'
             endTime: endTime ? new Date(endTime) : null,
-            status: 'SCHEDULED', // Default initial status
-            meetingLink: null,
+            status: "SCHEDULED", 
+            meetingLink: generatedMeetingLink, // Added dynamic Jitsi room link
             recordingUrl: null,
             createdAt: new Date()
         };
 
         sessions.push(newSession);
+
+        // PM Requirement: Broadcast to all connected clients via WebSockets
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('session_created', newSession);
+        }
+
         return res.status(201).json(newSession);
     } catch (error) {
-        return res.status(500).json({ error: 'Failed to create session' });
+        return res.status(500).json({ error: error.message });
     }
 };
 
 /**
- * 2. Fetch a Single Session with Attendance
- * GET /api/v1/sessions/:id
+ * 2. Handle Recording Save Callback (Webhook)
+ * POST /api/v1/sessions/callback/recording
  */
-const getSessionById = async (req, res) => {
+const handleRecordingCallback = async (req, res) => {
     try {
-        const { id } = req.params;
-        const session = sessions.find(s => s.id === id); // Cut off at "s =>"
+        const { sessionId, recordingUrl } = req.body;
 
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
+        if (!sessionId || !recordingUrl) {
+            return res.status(400).json({ error: "Missing sessionId or recordingUrl" });
         }
 
-        // Filter attendance records specifically for this session
-        const sessionAttendance = attendance.filter(a => a.sessionId === id); // Cut off at "attendan"
-        res.status(200).json({ ...session, attendance: sessionAttendance });
+        // Find session in mock array and update it
+        const sessionIndex = sessions.findIndex(s => s.id === sessionId);
+        if (sessionIndex === -1) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+
+        sessions[sessionIndex].recordingUrl = recordingUrl;
+        sessions[sessionIndex].status = "COMPLETED";
+
+        // PM Requirement: Broadcast recording ready event
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('recording_ready', sessions[sessionIndex]);
+        }
+
+        return res.status(200).json({ message: "Recording callback processed successfully", session: sessions[sessionIndex] });
     } catch (error) {
-        res.status(500).json({ error: 'Failed' }); 
+        return res.status(500).json({ error: error.message });
     }
 };
+
 
 /**
  * 3. Update Session Status or Details
@@ -93,21 +117,58 @@ const deleteSession = async (req, res) => {
         const sessionIndex = sessions.findIndex(s => s.id === id);
 
         if (sessionIndex === -1) {
-            return res.status(404).json({ error: 'Session not found' });
+            return res.status(404).json({ error: "Session not found" });
         }
 
-        // Remove the target session entry from the array
-        sessions.splice(sessionIndex, 1);
-        res.status(200).json({ message: 'Session deleted successfully' });
+        sessions[sessionIndex].recordingUrl = recordingUrl;
+        return res.status(200).json({
+            success: true,
+            message: "Recording save callback processed successfully",
+            data: sessions[sessionIndex]
+        });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to delete session' });
+        return res.status(500).json({ error: error.message });
     }
 };
-
-// Export all the middleware handlers
+// 3. Get Session By ID Handler
+const getSessionById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const session = sessions.find(s => s.id === id);
+        if (!session) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+        return res.status(200).json(session);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+// 5. Save Recording Callback Webhook
+const saveRecordingCallback = async (req, res) => {
+    try {
+        const { sessionId, recordingUrl } = req.body;
+        if (!sessionId || !recordingUrl) {
+            return res.status(400).json({ error: "Missing sessionId or recordingUrl" });
+        }
+        const sessionIndex = sessions.findIndex(s => s.id === sessionId);
+        if (sessionIndex === -1) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+        sessions[sessionIndex].recordingUrl = recordingUrl;
+        return res.status(200).json({
+            success: true,
+            message: "Recording save callback processed successfully",
+            data: sessions[sessionIndex]
+        });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+// Export all the middleware handlers globally
 module.exports = {
     createSession,
     getSessionById,
     updateSession,
-    deleteSession
+    deleteSession,
+    saveRecordingCallback
 };

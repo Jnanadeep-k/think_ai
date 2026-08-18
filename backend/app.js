@@ -8,7 +8,10 @@ const swaggerJsdoc = require("swagger-jsdoc");
 const courseRoutes = require("./routes/courseRoutes");
 const batchRoutes = require("./routes/batchRoutes");
 const enrollmentRoutes = require("./routes/enrollmentRoutes");
-
+const authRoutes = require("./routes/authRoutes")
+const adminUsers = require("./routes/adminUsers");
+const roleRoutes = require("./routes/roleRoutes");
+const demoRoutes = require("./routes/demoRoutes");
 const app = express();
 
 // Middlewares
@@ -16,6 +19,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
+const session = require('express-session');
+const passport = require('passport');
+require('./config/passport');
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your_secret_fallback',
+    resave: false,
+    saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Mount Demo Routes
+app.use('/api/demo', demoRoutes);
 
 // Swagger Configuration
 const swaggerOptions = {
@@ -51,5 +68,8 @@ app.get("/", (req, res) => {
 app.use("/api/courses", courseRoutes);
 app.use("/api/batches", batchRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
-
+// The New Routes Anand Requested
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminUsers);
+app.use("/api/roles", roleRoutes);
 module.exports = app;
