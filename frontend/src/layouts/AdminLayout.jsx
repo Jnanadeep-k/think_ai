@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/courses', label: 'Courses' },
   { to: '/admin/batches', label: 'Batches' },
+  { to: "/admin/enrollments", label: "Enrollments" },
 ];
 
 export default function AdminLayout() {
