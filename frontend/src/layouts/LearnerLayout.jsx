@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, selectUser } from '../features/auth/authSlice';
 import { useTheme } from '../components/ThemeContext';
+import NotificationCenter from '../components/notifications/NotificationCenter';
 
 export default function LearnerLayout() {
   const dispatch = useDispatch();
@@ -60,6 +61,8 @@ export default function LearnerLayout() {
                 </button>
               )}
 
+              <NotificationCenter />
+
               <button
                 onClick={toggleTheme}
                 className="p-1.5 rounded-full transition-colors bg-white/5 hover:bg-white/10 text-amber-400 cursor-pointer text-xs"
@@ -115,7 +118,7 @@ export default function LearnerLayout() {
             <Link to="/learner/assignments" onClick={handleLinkClick} className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Assignments</Link>
             <Link to="/learner/playground" onClick={handleLinkClick} className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Playground</Link>
             <Link to="/learner/certificates" onClick={handleLinkClick} className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">Certificates</Link>
-            
+
           </div>
         )}
       </header>
