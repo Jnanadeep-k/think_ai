@@ -2,13 +2,13 @@ const express = require("express");
 const router = express.Router();
 const { users } = require("../data/users");
 const { roles } = require("../data/roles");
-
+const requireRole = require("../middleware/requireRole");
 /**
  * GET /admin/users
  * Lists every user, with their current role.
  * Used by the Admin Users Page to populate the users table.
  */
-router.get("/users", (req, res) => {
+router.get("/users", requireRole(["Admin"]), (req, res) => {
   res.status(200).json({
     success: true,
     count: users.length,
@@ -21,7 +21,7 @@ router.get("/users", (req, res) => {
  * Lists every role that exists in the system.
  * Used to populate a dropdown when an admin wants to assign/change someone's role.
  */
-router.get("/roles", (req, res) => {
+router.get("/roles", requireRole(["Admin"]), (req, res) => {
   res.status(200).json({
     success: true,
     data: roles,
@@ -33,7 +33,7 @@ router.get("/roles", (req, res) => {
  * Assigns a role to a user for the first time (e.g. a brand-new signup with no role yet).
  * Body: { "role": "Instructor" }
  */
-router.post("/users/:id/assign-role", (req, res) => {
+router.post("/users/:id/assign-role", requireRole(["Admin"]), (req, res) => {
   const userId = parseInt(req.params.id);
   const { role } = req.body;
 
@@ -61,7 +61,7 @@ router.post("/users/:id/assign-role", (req, res) => {
  * Updates/changes an existing user's role (e.g. promoting a Learner to TA).
  * Body: { "role": "TA" }
  */
-router.put("/users/:id/role", (req, res) => {
+router.put("/users/:id/role",requireRole(["Admin"]), (req, res) => {
   const userId = parseInt(req.params.id);
   const { role } = req.body;
 

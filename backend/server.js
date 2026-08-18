@@ -7,6 +7,7 @@ const swaggerUi = require("swagger-ui-express");
 
 const courseRoutes = require("./routes/courseRoutes");
 const batchRoutes = require("./routes/batchRoutes");
+const adminUsersRoutes = require("./routes/adminUsers");
 //const enrollmentRoutes = require("./routes/enrollmentRoutes");
 
 const app = express();
@@ -25,6 +26,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/batches", batchRoutes);
 //app.use("/api/enrollments", enrollmentRoutes);
 const notificationPreferenceRoutes = require("./routes/notificationPreferences");
+app.use("/admin", adminUsersRoutes);
 app.use("/api/notifications", notificationPreferenceRoutes);
 /*app.use(
     "/api-docs",
