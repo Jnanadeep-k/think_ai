@@ -6,6 +6,7 @@ const path = require("path");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
 
+// Routes
 const courseRoutes = require("./routes/courseRoutes");
 const batchRoutes = require("./routes/batchRoutes");
 const enrollmentRoutes = require("./routes/enrollmentRoutes");
@@ -13,36 +14,68 @@ const moduleRoutes = require("./routes/moduleRoutes");
 const lessonRoutes = require("./routes/lessonRoutes");
 const lessonProgressRoutes = require("./routes/lessonProgressRoutes");
 const certificateRoutes = require("./routes/certificateRoutes");
+const assessmentRoutes = require("./routes/assessmentRoutes");
+const codeExecutionRoutes = require("./routes/codeExecutionRoutes");
+const auditLogRoutes = require("./routes/auditLogs");
+const analyticsRoutes = require("./routes/analytics");
 
 const app = express();
-const auditLogRoutes = require('./routes/auditLogs');
-app.use('/api/audit-logs', auditLogRoutes);
 
-const analyticsRoutes = require('./routes/analytics');
-app.use('/api/analytics', analyticsRoutes);
 
+// ----------------------------------------------------
 // Middlewares
+// ----------------------------------------------------
+
 app.use(cors());
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+app.use(
+    express.urlencoded({
+        extended: true
+    })
+);
+
 app.use(morgan("dev"));
 
+
+// ----------------------------------------------------
+// Additional API Routes
+// ----------------------------------------------------
+
+app.use(
+    "/api/audit-logs",
+    auditLogRoutes
+);
+
+app.use(
+    "/api/analytics",
+    analyticsRoutes
+);
+
+
+// ----------------------------------------------------
 // Swagger Configuration
+// ----------------------------------------------------
+
 const swaggerOptions = {
     definition: {
         openapi: "3.0.0",
+
         info: {
             title: "Thinkz LMS API",
             version: "1.0.0",
             description:
-                "Course, Batch and Enrollment Management APIs"
+                "Course, Batch, Enrollment, Assessment and Code Execution APIs"
         },
+
         servers: [
             {
                 url: "http://localhost:3000"
             }
         ]
     },
+
     apis: ["./routes/*.js"]
 };
 
@@ -55,7 +88,11 @@ app.use(
     swaggerUi.setup(swaggerSpec)
 );
 
+
+// ----------------------------------------------------
 // Home Route
+// ----------------------------------------------------
+
 app.get("/", (req, res) => {
     res.status(200).json({
         success: true,
@@ -64,7 +101,11 @@ app.get("/", (req, res) => {
     });
 });
 
-// Serve generated certificate PDFs
+
+// ----------------------------------------------------
+// Serve Generated Certificate PDFs
+// ----------------------------------------------------
+
 app.use(
     "/certificates",
     express.static(
@@ -75,7 +116,11 @@ app.use(
     )
 );
 
+
+// ----------------------------------------------------
 // API Routes
+// ----------------------------------------------------
+
 app.use(
     "/api/courses",
     courseRoutes
@@ -110,5 +155,25 @@ app.use(
     "/api/certificates",
     certificateRoutes
 );
+
+app.use(
+    "/api/assessments",
+    assessmentRoutes
+);
+
+
+// ----------------------------------------------------
+// Code Execution
+// ----------------------------------------------------
+
+app.use(
+    "/api/code",
+    codeExecutionRoutes
+);
+
+
+// ----------------------------------------------------
+// Export App
+// ----------------------------------------------------
 
 module.exports = app;

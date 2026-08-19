@@ -4,6 +4,7 @@ const router = express.Router();
 
 const {
     generateCertificate,
+    getCertificateEligibility,
     getCertificateByEnrollment,
     downloadCertificate,
     verifyCertificate
@@ -16,6 +17,10 @@ const {
     validateCertificateNumber
 } = require("../validations/certificateValidation");
 
+
+// ----------------------------------------------------
+// Swagger
+// ----------------------------------------------------
 
 /**
  * @swagger
@@ -30,7 +35,10 @@ const {
  * /api/certificates/generate/{enrollmentId}:
  *   post:
  *     summary: Generate course completion certificate
- *     description: Generates a certificate when the student has completed at least 80% of the course.
+ *     description: >
+ *       Generates a certificate when the student has completed at least
+ *       80% of the course and passed all required assessments with a
+ *       minimum score of 40%.
  *     tags: [Certificates]
  *     parameters:
  *       - in: path
@@ -39,16 +47,98 @@ const {
  *         schema:
  *           type: integer
  *         example: 1
+ *         description: Enrollment ID
  *     responses:
  *       201:
  *         description: Certificate generated successfully
  *       400:
- *         description: Student has not completed 80% of the course
+ *         description: Student is not eligible for certificate
+ *       404:
+ *         description: Enrollment not found
+ *       500:
+ *         description: Certificate generation failed
  */
 router.post(
     "/generate/:enrollmentId",
     validateCertificateEnrollmentId,
     generateCertificate
+);
+
+
+/**
+ * @swagger
+ * /api/certificates/eligibility/{enrollmentId}:
+ *   get:
+ *     summary: Check certificate eligibility
+ *     description: >
+ *       Checks whether the student is eligible to receive a certificate.
+ *       The student must complete at least 80% of the course and pass
+ *       all required assessments with a minimum score of 40%.
+ *     tags: [Certificates]
+ *     parameters:
+ *       - in: path
+ *         name: enrollmentId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *         description: Enrollment ID
+ *     responses:
+ *       200:
+ *         description: Certificate eligibility checked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     enrollmentId:
+ *                       type: integer
+ *                       example: 1
+ *                     courseCompletion:
+ *                       type: number
+ *                       example: 85
+ *                     requiredCourseCompletion:
+ *                       type: number
+ *                       example: 80
+ *                     courseCompleted:
+ *                       type: boolean
+ *                       example: true
+ *                     assessments:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 3
+ *                         passed:
+ *                           type: integer
+ *                           example: 3
+ *                         failed:
+ *                           type: integer
+ *                           example: 0
+ *                     requiredAssessmentPercentage:
+ *                       type: number
+ *                       example: 40
+ *                     assessmentsCompleted:
+ *                       type: boolean
+ *                       example: true
+ *                     eligible:
+ *                       type: boolean
+ *                       example: true
+ *       404:
+ *         description: Enrollment not found
+ *       500:
+ *         description: Failed to check certificate eligibility
+ */
+router.get(
+    "/eligibility/:enrollmentId",
+    validateCertificateEnrollmentId,
+    getCertificateEligibility
 );
 
 
@@ -65,11 +155,14 @@ router.post(
  *         schema:
  *           type: integer
  *         example: 1
+ *         description: Enrollment ID
  *     responses:
  *       200:
  *         description: Certificate found
  *       404:
  *         description: Certificate not found
+ *       500:
+ *         description: Failed to retrieve certificate
  */
 router.get(
     "/enrollment/:enrollmentId",
@@ -102,6 +195,8 @@ router.get(
  *               format: binary
  *       404:
  *         description: Certificate or PDF not found
+ *       500:
+ *         description: Failed to download certificate
  */
 router.get(
     "/:certificateNo/download",
@@ -129,6 +224,8 @@ router.get(
  *         description: Valid certificate
  *       404:
  *         description: Certificate not found
+ *       500:
+ *         description: Certificate verification failed
  */
 router.get(
     "/verify/:certificateNo",
