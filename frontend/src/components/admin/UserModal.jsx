@@ -3,28 +3,21 @@ import Modal from '../common/Modal';
 import InputField from '../common/InputField';
 import Button from '../common/Button';
 
-export default function UserModal({ isOpen, onClose, user, onSave }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'learner',
-    status: 'active',
-  });
+const EMPTY_USER = { name: '', email: '', role: 'Learner' };
 
-  // Populate form if editing an existing user, reset if adding a new one
+export default function UserModal({ isOpen, onClose, user, onSave }) {
+  const [formData, setFormData] = useState(EMPTY_USER);
+
   useEffect(() => {
     if (user) {
       setFormData(user);
     } else {
-      setFormData({ name: '', email: '', role: 'learner', status: 'active' });
+      setFormData(EMPTY_USER);
     }
   }, [user, isOpen]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e) => {
@@ -33,11 +26,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
   };
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title={user ? 'Edit User' : 'Add New User'}
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title={user ? 'Edit User Role' : 'Add New User'}>
       <form onSubmit={handleSubmit} className="space-y-5">
         <InputField
           label="Full Name"
@@ -61,7 +50,17 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
           required
         />
 
-        {/* Role Dropdown */}
+        <InputField
+          label="Password"
+          id="password"
+          name="password"
+          type="password"
+          value={formData.password || ''} // Added fallback in case an edited user object doesn't contain a password
+          onChange={handleChange}
+          placeholder="••••••••"
+          required={!user} // Only make password required if creating a NEW user
+        />
+
         <div>
           <label htmlFor="role" className="block text-sm font-medium text-gray-300 mb-1.5">
             System Role
@@ -71,29 +70,12 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="w-full bg-[#0D1220] border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors cursor-pointer appearance-none"
+            className="w-full bg-[#0D1220] border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors cursor-pointer"
           >
-            <option value="learner">Learner</option>
-            <option value="instructor">Instructor</option>
-            <option value="ta">Teaching Assistant (TA)</option>
-            <option value="admin">Administrator</option>
-          </select>
-        </div>
-
-        {/* Status Dropdown */}
-        <div>
-          <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1.5">
-            Account Status
-          </label>
-          <select
-            id="status"
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="w-full bg-[#0D1220] border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors cursor-pointer appearance-none"
-          >
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
+            <option value="Learner">Learner</option>
+            <option value="Instructor">Instructor</option>
+            <option value="TA">TA</option>
+            <option value="Admin">Admin</option>
           </select>
         </div>
 
@@ -105,10 +87,7 @@ export default function UserModal({ isOpen, onClose, user, onSave }) {
           >
             Cancel
           </button>
-          <Button
-            type="submit"
-            label={user ? 'Save Changes' : 'Create User'}
-          />
+          <Button type="submit" label={user ? 'Save Role' : 'Create User'} />
         </div>
       </form>
     </Modal>

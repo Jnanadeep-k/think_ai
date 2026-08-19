@@ -12,7 +12,8 @@ const adminUsersRoutes = require("./routes/adminUsers");
 const auditLogRoutes = require("./routes/auditLog");
 //const enrollmentRoutes = require("./routes/enrollmentRoutes");
 
-const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
 
 app.use(cors());
 app.use(express.json());

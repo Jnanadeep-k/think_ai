@@ -1,31 +1,46 @@
-const courseRepository = require("../repositories/courseRepository");
+const repository = require("../repositories/courseRepository");
 
-class CourseService {
+const getAllCourses = async (page, limit, search) => {
+    const skip = (page - 1) * limit;
 
-    async getAllCourses() {
-        return await courseRepository.findAll();
-    }
+    return await repository.getAllCourses(
+        skip,
+        Number(limit),
+        search || ""
+    );
+};
 
-    async getCourseById(id) {
-        return await courseRepository.findById(id);
-    }
+const getCourseById = async (id) => {
+    return await repository.getCourseById(Number(id));
+};
 
-    async createCourse(course) {
-        return await courseRepository.create(course);
-    }
+const createCourse = async (data) => {
+    return await repository.createCourse(data);
+};
 
-    async updateCourse(id, course) {
-        return await courseRepository.update(id, course);
-    }
+const updateCourse = async (id, data) => {
+    return await repository.updateCourse(Number(id), data);
+};
 
-    async deleteCourse(id) {
-        return await courseRepository.delete(id);
-    }
+const deleteCourse = async (id) => {
+    return await repository.deleteCourse(Number(id));
+};
 
-    async patchCourse(id, courseData) {
-    return await courseRepository.patch(id, courseData);
-}
+const getCourseBatches = async (courseId) => {
+    return await repository.getCourseBatches(Number(courseId));
+};
 
-}
+/* Get course content */
+const getCourseContent = async (courseId) => {
+    return await repository.getCourseContent(Number(courseId));
+};
 
-module.exports = new CourseService();
+module.exports = {
+    getAllCourses,
+    getCourseById,
+    createCourse,
+    updateCourse,
+    deleteCourse,
+    getCourseBatches,
+    getCourseContent
+};

@@ -1,168 +1,83 @@
-const db = require("../config/db");
+const prisma = require("../config/database");
 
-class CourseRepository {
+const getAllCourses = async (skip, take, search) => {
+    return await prisma.course.findMany({
+        where: {
+            title: {
+                contains: search,
+                mode: "insensitive"
+            }
+        },
+        skip,
+        take,
+        orderBy: {
+            id: "desc"
+        }
+    });
+};
 
-    async findAll() {
-        const result = await db.query(
-            "SELECT * FROM courses ORDER BY id"
-        );
-        return result.rows;
-    }
+const getCourseById = async (id) => {
+    return await prisma.course.findUnique({
+        where: { id }
+    });
+};
 
-    async findById(id) {
-        const result = await db.query(
-            "SELECT * FROM courses WHERE id = $1",
-            [id]
-        );
-        return result.rows[0];
-    }
+const createCourse = async (data) => {
+    return await prisma.course.create({
+        data
+    });
+};
 
-    async create(course) {
-        const query = `
-            INSERT INTO courses
-            (
-                title,
-                description,
-                instructor,
-                duration,
-                category,
-                level,
-                language,
-                price,
-                thumbnail,
-                status
-            )
-            VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-            RETURNING *;
-        `;
+const updateCourse = async (id, data) => {
+    return await prisma.course.update({
+        where: { id },
+        data
+    });
+};
 
-        const values = [
-            course.title,
-            course.description,
-            course.instructor,
-            course.duration,
-            course.category,
-            course.level,
-            course.language,
-            course.price,
-            course.thumbnail,
-            "ACTIVE"
-        ];
+const deleteCourse = async (id) => {
+    return await prisma.course.delete({
+        where: { id }
+    });
+};
 
-        const result = await db.query(query, values);
+const getCourseBatches = async (courseId) => {
+    return await prisma.batch.findMany({
+        where: {
+            courseId
+        }
+    });
+};
 
-        return result.rows[0];
-    }
+/* Get course with modules and lessons */
+const getCourseContent = async (courseId) => {
+    return await prisma.course.findUnique({
+        where: {
+            id: Number(courseId)
+        },
+        include: {
+            modules: {
+                orderBy: {
+                    id: "asc"
+                },
+                include: {
+                    lessons: {
+                        orderBy: {
+                            order: "asc"
+                        }
+                    }
+                }
+            }
+        }
+    });
+};
 
-async update(id, course) {
-
-    const existing = await this.findById(id);
-
-    if (!existing) {
-        return null;
-    }
-
-    const updatedCourse = {
-        title: course.title ?? existing.title,
-        description: course.description ?? existing.description,
-        instructor: course.instructor ?? existing.instructor,
-        duration: course.duration ?? existing.duration,
-        category: course.category ?? existing.category,
-        level: course.level ?? existing.level,
-        language: course.language ?? existing.language,
-        price: course.price ?? existing.price,
-        thumbnail: course.thumbnail ?? existing.thumbnail
-    };
-
-    const query = `
-        UPDATE courses
-        SET
-            title = $1,
-            description = $2,
-            instructor = $3,
-            duration = $4,
-            category = $5,
-            level = $6,
-            language = $7,
-            price = $8,
-            thumbnail = $9
-        WHERE id = $10
-        RETURNING *;
-    `;
-
-    const values = [
-        updatedCourse.title,
-        updatedCourse.description,
-        updatedCourse.instructor,
-        updatedCourse.duration,
-        updatedCourse.category,
-        updatedCourse.level,
-        updatedCourse.language,
-        updatedCourse.price,
-        updatedCourse.thumbnail,
-        id
-    ];
-
-    const result = await db.query(query, values);
-
-    return result.rows[0];
-}
-
-    async delete(id) {
-        const result = await db.query(
-            "DELETE FROM courses WHERE id=$1 RETURNING *",
-            [id]
-        );
-
-        return result.rowCount > 0;
-    }
-
-    async patch(id, courseData) {
-
-    const existing = await this.findById(id);
-
-    if (!existing) {
-        return null;
-    }
-
-    const updatedCourse = {
-        ...existing,
-        ...courseData
-    };
-
-    const query = `
-        UPDATE courses
-        SET
-            title = $1,
-            description = $2,
-            instructor = $3,
-            duration = $4,
-            category = $5,
-            level = $6,
-            language = $7,
-            price = $8,
-            thumbnail = $9
-        WHERE id = $10
-        RETURNING *;
-    `;
-
-    const values = [
-        updatedCourse.title,
-        updatedCourse.description,
-        updatedCourse.instructor,
-        updatedCourse.duration,
-        updatedCourse.category,
-        updatedCourse.level,
-        updatedCourse.language,
-        updatedCourse.price,
-        updatedCourse.thumbnail,
-        id
-    ];
-
-    const result = await db.query(query, values);
-
-    return result.rows[0];
-}
-}
-
-module.exports = new CourseRepository();
+module.exports = {
+    getAllCourses,
+    getCourseById,
+    createCourse,
+    updateCourse,
+    deleteCourse,
+    getCourseBatches,
+    getCourseContent
+};

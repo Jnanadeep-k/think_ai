@@ -1,129 +1,100 @@
-const db = require("../config/db");
+const prisma = require("../config/database");
 
-class BatchRepository {
 
-    async findAll() {
+const getAllBatches = async () => {
+    return await prisma.batch.findMany({
+        include: {
+            course: true,
+            enrollments: true
+        },
+        orderBy: {
+            id: "desc"
+        }
+    });
+};
 
-        const result = await db.query(
-            "SELECT * FROM batches ORDER BY id"
-        );
 
-        return result.rows;
-    }
+const getBatchById = async (id) => {
+    return await prisma.batch.findUnique({
+        where: { id },
+        include: {
+            course: true,
+            enrollments: true
+        }
+    });
+};
 
-    async findById(id) {
 
-        const result = await db.query(
-            "SELECT * FROM batches WHERE id=$1",
-            [id]
-        );
+const createBatch = async (data) => {
+    return await prisma.batch.create({
+        data
+    });
+};
 
-        return result.rows[0];
-    }
 
-    async create(batch) {
+const updateBatch = async (id, data) => {
+    return await prisma.batch.update({
+        where: { id },
+        data
+    });
+};
 
-        const query = `
-        INSERT INTO batches
-        (
-            batch_name,
-            course_id,
-            trainer_name,
-            start_date,
-            end_date,
-            timing,
-            mode,
-            capacity,
-            enrolled_count,
-            status
-        )
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-        RETURNING *`;
 
-        const values = [
+const deleteBatch = async (id) => {
+    return await prisma.batch.delete({
+        where: { id }
+    });
+};
 
-            batch.batchName,
-            batch.courseId,
-            batch.trainerName,
-            batch.startDate,
-            batch.endDate,
-            batch.timing,
-            batch.mode,
-            batch.capacity,
-            batch.enrolledCount || 0,
-            batch.status || "ACTIVE"
 
-        ];
+const getBatchEnrollments = async (batchId) => {
+    return await prisma.enrollment.findMany({
+        where: {
+            batchId
+        }
+    });
+};
 
-        const result = await db.query(query, values);
 
-        return result.rows[0];
+/*
+ * Get active batches for a particular course
+ */
+const getAvailableBatches = async (courseId) => {
+    return await prisma.batch.findMany({
+        where: {
+            courseId: Number(courseId),
+            status: "ACTIVE"
+        },
+        include: {
+            enrollments: true
+        },
+        orderBy: {
+            startDate: "asc"
+        }
+    });
+};
 
-    }
 
-    async update(id, batch) {
+/*
+ * Create enrollment after automatic batch allocation
+ */
+const createEnrollment = async (data) => {
+    return await prisma.enrollment.create({
+        data,
+        include: {
+            batch: true
+        }
+    });
+};
 
-        const existing = await this.findById(id);
 
-        if (!existing)
-            return null;
-
-        const updated = {
-
-            ...existing,
-            ...batch
-
-        };
-
-        const query = `
-        UPDATE batches
-        SET
-        batch_name=$1,
-        course_id=$2,
-        trainer_name=$3,
-        start_date=$4,
-        end_date=$5,
-        timing=$6,
-        mode=$7,
-        capacity=$8,
-        enrolled_count=$9,
-        status=$10
-        WHERE id=$11
-        RETURNING *`;
-
-        const values = [
-
-            updated.batch_name,
-            updated.course_id,
-            updated.trainer_name,
-            updated.start_date,
-            updated.end_date,
-            updated.timing,
-            updated.mode,
-            updated.capacity,
-            updated.enrolled_count,
-            updated.status,
-            id
-
-        ];
-
-        const result = await db.query(query, values);
-
-        return result.rows[0];
-
-    }
-
-    async delete(id) {
-
-        const result = await db.query(
-            "DELETE FROM batches WHERE id=$1 RETURNING *",
-            [id]
-        );
-
-        return result.rowCount > 0;
-
-    }
-
-}
-
-module.exports = new BatchRepository();
+module.exports = {
+    getAllBatches,
+    getBatchById,
+    createBatch,
+    updateBatch,
+    deleteBatch,
+    getBatchEnrollments,
+    getAvailableBatches,
+    createEnrollment
+};
