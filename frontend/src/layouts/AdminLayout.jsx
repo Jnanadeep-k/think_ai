@@ -6,10 +6,13 @@ import Branding from '../components/auth/Branding';
 
 const NAV_ITEMS = [
   { to: '/admin/dashboard', label: 'Dashboard' },
+  { to: '/admin/rbac', label: 'RBAC' },
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/courses', label: 'Courses' },
   { to: '/admin/batches', label: 'Batches' },
   { to: '/admin/enrollments', label: 'Enrollments' },
+  { to: '/admin/modules', label: 'Modules' },
+  { to: '/admin/lessons', label: 'Lessons' },
 ];
 
 export default function AdminLayout() {
