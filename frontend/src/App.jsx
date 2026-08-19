@@ -1,46 +1,48 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import LandingPage from "./pages/public/Landingpage";
+import LandingPage from "./pages/public/LandingPage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoutes from "./routes/AdminRoutes";
+import LearnerRoutes from "./routes/LearnerRoutes";
 
-// Your LMS Routes
-import AppRoutes from "./routes/AppRoutes";
-
-function RolePlaceholder({ label }) {
-  return (
-    <div className="h-screen w-full flex items-center justify-center bg-[#0B0F19] text-white">
-      <p className="text-lg">{label} dashboard — coming soon.</p>
-    </div>
-  );
-}
+import { fetchCurrentUser } from "./features/auth/authSlice";
+import RolePlaceholder from "./components/common/RolePlaceholder";
+import LearnerCoursesPage from "./pages/learner/LearnerCoursesPage";
+import { ThemeProvider } from './components/ThemeContext';
 
 function App() {
+  const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth.token);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+
+  useEffect(() => {
+    if (token && !isAuthenticated) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [dispatch, token, isAuthenticated]);
+
   return (
+    <ThemeProvider>
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/home" element={<Navigate to="/" replace />} />
+      <Route path="courses" element={<LearnerCoursesPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route
-        path="/org-login"
-        element={<RolePlaceholder label="Organization login" />}
-      />
+      <Route path="/org-login" element={<RolePlaceholder label="Organization Login" />} />
 
-      {/* Admin Routes */}
+      {/* Admin */}
       <Route
         path="/admin/*"
         element={
           <ProtectedRoute allowedRoles={["Admin"]}>
-            <>
-              <AdminRoutes />
-              <AppRoutes />
-            </>
+            <AdminRoutes />
           </ProtectedRoute>
         }
       />
@@ -49,8 +51,8 @@ function App() {
       <Route
         path="/learner/*"
         element={
-          <ProtectedRoute allowedRoles={["Learner"]}>
-            <RolePlaceholder label="Learner" />
+          <ProtectedRoute allowedRoles={["Learner","Admin"]}>
+            <LearnerRoutes />
           </ProtectedRoute>
         }
       />
@@ -69,15 +71,16 @@ function App() {
       <Route
         path="/ta/*"
         element={
-          <ProtectedRoute allowedRoles={["Ta"]}>
+          <ProtectedRoute allowedRoles={["TA"]}>
             <RolePlaceholder label="TA" />
           </ProtectedRoute>
         }
       />
 
-      {/* Fallback */}
+      {/* 404 */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    </ThemeProvider>
   );
 }
 

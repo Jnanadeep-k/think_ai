@@ -4,20 +4,20 @@ import { Outlet } from "react-router-dom";
 
 function Layout() {
   return (
-    <div className="flex">
-
+    <div className="flex min-h-screen bg-[#0B0F19] text-white">
+      {/* Sidebar */}
       <Sidebar />
 
-      <div className="ml-64 flex-1 bg-gray-100 min-h-screen">
-
+      {/* Main Content */}
+      <div className="flex-1 ml-64 flex flex-col">
+        {/* Navbar */}
         <Navbar />
 
-        <div className="p-6">
+        {/* Page Content */}
+        <main className="flex-1 bg-[#0F172A] p-8 overflow-y-auto">
           <Outlet />
-        </div>
-
+        </main>
       </div>
-
     </div>
   );
 }

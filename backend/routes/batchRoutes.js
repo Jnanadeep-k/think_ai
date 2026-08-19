@@ -8,8 +8,23 @@ const {
     createBatch,
     updateBatch,
     deleteBatch,
-    getBatchEnrollments
+    getBatchEnrollments,
+    autoAllocateStudent
 } = require("../controllers/batchController");
+
+
+// Batch validations
+const {
+    validateBatchCreate,
+    validateBatchUpdate,
+    validateBatchId,
+    validateBatchEnrollmentId
+} = require("../validations/batchValidation");
+
+
+// ----------------------------------------------------
+// Swagger
+// ----------------------------------------------------
 
 /**
  * @swagger
@@ -17,6 +32,7 @@ const {
  *   name: Batches
  *   description: Batch Management APIs
  */
+
 
 /**
  * @swagger
@@ -29,6 +45,46 @@ const {
  *         description: List of batches
  */
 router.get("/", getBatches);
+
+
+/**
+ * @swagger
+ * /api/batches/auto-allocate:
+ *   post:
+ *     summary: Automatically allocate a student to a suitable batch
+ *     tags: [Batches]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentName
+ *               - studentEmail
+ *               - courseId
+ *             properties:
+ *               studentName:
+ *                 type: string
+ *                 example: Rahul Kumar
+ *               studentEmail:
+ *                 type: string
+ *                 example: rahul@gmail.com
+ *               courseId:
+ *                 type: integer
+ *                 example: 1
+ *     responses:
+ *       201:
+ *         description: Student automatically allocated to a batch
+ *       400:
+ *         description: No suitable batch available or invalid request
+ */
+router.post(
+    "/auto-allocate",
+    validateBatchCreate,
+    autoAllocateStudent
+);
+
 
 /**
  * @swagger
@@ -49,7 +105,12 @@ router.get("/", getBatches);
  *       404:
  *         description: Batch not found
  */
-router.get("/:id", getBatchById);
+router.get(
+    "/:id",
+    validateBatchId,
+    getBatchById
+);
+
 
 /**
  * @swagger
@@ -97,8 +158,15 @@ router.get("/:id", getBatchById);
  *     responses:
  *       201:
  *         description: Batch created successfully
+ *       400:
+ *         description: Batch validation failed
  */
-router.post("/", createBatch);
+router.post(
+    "/",
+    validateBatchCreate,
+    createBatch
+);
+
 
 /**
  * @swagger
@@ -146,10 +214,18 @@ router.post("/", createBatch);
  *     responses:
  *       200:
  *         description: Batch updated successfully
+ *       400:
+ *         description: Batch validation failed
  *       404:
  *         description: Batch not found
  */
-router.put("/:id", updateBatch);
+router.put(
+    "/:id",
+    validateBatchId,
+    validateBatchUpdate,
+    updateBatch
+);
+
 
 /**
  * @swagger
@@ -170,7 +246,12 @@ router.put("/:id", updateBatch);
  *       404:
  *         description: Batch not found
  */
-router.delete("/:id", deleteBatch);
+router.delete(
+    "/:id",
+    validateBatchId,
+    deleteBatch
+);
+
 
 /**
  * @swagger
@@ -189,6 +270,11 @@ router.delete("/:id", deleteBatch);
  *       200:
  *         description: List of enrollments
  */
-router.get("/:batchId/enrollments", getBatchEnrollments);
+router.get(
+    "/:batchId/enrollments",
+    validateBatchEnrollmentId,
+    getBatchEnrollments
+);
+
 
 module.exports = router;

@@ -8,16 +8,20 @@ datasource db {
 }
 
 model Course {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  category    String
-  price       Float
-  duration    String
-  thumbnail   String?
-  status      String   @default("ACTIVE")
+  id                Int      @id @default(autoincrement())
+  title             String
+  description       String
+  category          String
+  price             Float
+  duration          String
+  thumbnail         String?
+  videoUrl          String?
+  instructorName    String?
+  instructorDetails String?
+  status            String   @default("ACTIVE")
 
   batches     Batch[]
+  modules     Module[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -58,4 +62,86 @@ model User {
   hashedPassword String
   role           String   @default("USER")
   createdAt      DateTime @default(now())
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  targetType String?
+  targetId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  lessonProgress   LessonProgress[]
+  certificate      Certificate?
+}
+
+model Module {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+
+  courseId    Int
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  lessons     Lesson[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lesson {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  content     String?
+  videoUrl    String?
+  duration    String?
+  order       Int      @default(0)
+
+  moduleId    Int
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  progress    LessonProgress[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LessonProgress {
+  id            Int      @id @default(autoincrement())
+
+  enrollmentId  Int
+  enrollment    Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  lessonId      Int
+  lesson        Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  completed     Boolean  @default(false)
+  completedAt   DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([enrollmentId, lessonId])
+}
+
+model Certificate {
+  id                   Int      @id @default(autoincrement())
+  certificateNo        String   @unique
+
+  enrollmentId         Int      @unique
+  enrollment            Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  studentName          String
+  courseName           String
+  instructorName       String?
+  completionPercentage Float
+
+  issuedAt             DateTime @default(now())
+
+  pdfUrl               String?
+  verificationUrl      String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
