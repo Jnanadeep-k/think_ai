@@ -1,15 +1,31 @@
-const repository = require("../repositories/lessonProgressRepository");
-const automationService = require("./automationService");
+const repository =
+    require("../repositories/lessonProgressRepository");
+
+const automationService =
+    require("./automationService");
 
 
-const getProgressByEnrollment = async (enrollmentId) => {
+/*
+ * Get all lesson progress for an enrollment
+ */
+const getProgressByEnrollment = async (
+    enrollmentId
+) => {
+
     return await repository.getProgressByEnrollment(
         Number(enrollmentId)
     );
 };
 
 
-const getLessonProgress = async (enrollmentId, lessonId) => {
+/*
+ * Get progress for a specific lesson
+ */
+const getLessonProgress = async (
+    enrollmentId,
+    lessonId
+) => {
+
     return await repository.getLessonProgress(
         Number(enrollmentId),
         Number(lessonId)
@@ -17,62 +33,118 @@ const getLessonProgress = async (enrollmentId, lessonId) => {
 };
 
 
-const completeLesson = async (enrollmentId, lessonId) => {
+/*
+ * Complete a lesson
+ *
+ * After completing the lesson,
+ * trigger the Automation Engine.
+ */
+const completeLesson = async (
+    enrollmentId,
+    lessonId
+) => {
 
-    const progress = await repository.completeLesson(
-        Number(enrollmentId),
-        Number(lessonId)
-    );
-
-    // Trigger Automation Engine after lesson completion
-    const automationResult =
-        await automationService.processLessonCompletion(
-            Number(enrollmentId)
+    const progress =
+        await repository.completeLesson(
+            Number(enrollmentId),
+            Number(lessonId)
         );
 
+
+    /*
+     * Trigger Automation Engine
+     *
+     * Automation checks:
+     *
+     * 1. Course completion >= 80%
+     * 2. All required assessments >= 40%
+     *
+     * If both conditions are satisfied,
+     * certificate generation is triggered.
+     */
+    const automationResult =
+        await automationService
+            .processLessonCompletion(
+                Number(enrollmentId)
+            );
+
+
     return {
+
         progress,
-        automation: automationResult
+
+        automation:
+            automationResult
     };
 };
 
 
 /*
- * Get course progress summary for an enrollment
+ * Get course progress summary
  */
-const getProgressSummary = async (enrollmentId) => {
+const getProgressSummary = async (
+    enrollmentId
+) => {
 
-    const summary = await repository.getProgressSummary(
-        Number(enrollmentId)
-    );
+    const summary =
+        await repository.getProgressSummary(
+            Number(enrollmentId)
+        );
+
 
     const {
         totalLessons,
         completedLessons
     } = summary;
 
+
+    /*
+     * Calculate course completion percentage
+     */
     const completionPercentage =
         totalLessons === 0
             ? 0
             : Number(
-                ((completedLessons / totalLessons) * 100)
-                    .toFixed(2)
+                (
+                    (
+                        completedLessons /
+                        totalLessons
+                    ) * 100
+                ).toFixed(2)
             );
 
+
     return {
-        enrollmentId: Number(enrollmentId),
+
+        enrollmentId:
+            Number(enrollmentId),
+
         totalLessons,
+
         completedLessons,
+
         completionPercentage,
-        eligibleForCertificate:
+
+        /*
+         * This only represents the course
+         * completion requirement.
+         *
+         * Assessment eligibility is checked
+         * separately by the Automation Engine.
+         */
+        courseCompletionRequirementMet:
             completionPercentage >= 80
     };
 };
 
 
 module.exports = {
+
     getProgressByEnrollment,
+
     getLessonProgress,
+
     completeLesson,
+
     getProgressSummary
 };

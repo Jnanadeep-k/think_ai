@@ -17,7 +17,8 @@ const {
 const {
     validateCourseCreate,
     validateCourseUpdate,
-    validateCourseId
+    validateCourseId,
+    validateCourseParamId
 } = require("../validations/courseValidation");
 
 
@@ -50,6 +51,8 @@ const {
  *     responses:
  *       200:
  *         description: Course content retrieved successfully
+ *       400:
+ *         description: Invalid course ID
  *       404:
  *         description: Course not found
  *       500:
@@ -57,7 +60,7 @@ const {
  */
 router.get(
     "/:courseId/content",
-    validateCourseId,
+    validateCourseParamId,
     getCourseContent
 );
 
@@ -93,7 +96,10 @@ router.get(
  *       200:
  *         description: List of courses
  */
-router.get("/", getCourses);
+router.get(
+    "/",
+    getCourses
+);
 
 
 /**
@@ -112,6 +118,8 @@ router.get("/", getCourses);
  *     responses:
  *       200:
  *         description: Course found
+ *       400:
+ *         description: Invalid course ID
  *       404:
  *         description: Course not found
  */
@@ -270,6 +278,8 @@ router.put(
  *     responses:
  *       200:
  *         description: Course deleted successfully
+ *       400:
+ *         description: Invalid course ID
  *       404:
  *         description: Course not found
  */
@@ -296,10 +306,14 @@ router.delete(
  *     responses:
  *       200:
  *         description: List of batches
+ *       400:
+ *         description: Invalid course ID
+ *       404:
+ *         description: Course not found
  */
 router.get(
     "/:courseId/batches",
-    validateCourseId,
+    validateCourseParamId,
     getCourseBatches
 );
 
