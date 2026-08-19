@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useDispatch } from 'react-redux';
+import { notificationReceived } from '../../features/notifications/notificationSlice';
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getCourseById } from "../../api/courseApi";
@@ -33,6 +35,7 @@ function getFallbackImage(title, category) {
 export default function CourseDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch(); 
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,17 +58,28 @@ export default function CourseDetails() {
     }
   };
 
+
+
   const handleAddToCart = () => {
+    dispatch(notificationReceived({
+      id: `cart_${Date.now()}`,
+      title: 'Added to cart',
+      message: `${course.title} was added to your cart.`,
+      type: 'cart',
+      read: false,
+      createdAt: new Date().toISOString(),
+    }));
     toast.success(`${course.title} added to cart`, { theme: "dark" });
   };
 
   const handleBuyNow = () => {
-    toast.info("Redirecting to checkout...", { theme: "dark" });
+    const courseId = course.id || course._id;
+    navigate(`/learner/courses/${courseId}/checkout`);
   };
 
   const handleViewVideos = () => {
     const courseId = course.id || course._id;
-    navigate(`/learner/courses/${courseId}`);
+    navigate(`/learner/courses/${courseId}/videos`);
   };
 
   // Restored loading & null checks to prevent crashes
@@ -91,7 +105,7 @@ export default function CourseDetails() {
       {/* Header Bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Course: {course.title}</h1>
+          <h1 className="text-2xl font-semibold dark:text-purple-400">Course: {course.title}</h1>
           <p className="text-sm text-gray-400 mt-1">Comprehensive curriculum and program details</p>
         </div>
       </div>
@@ -120,11 +134,10 @@ export default function CourseDetails() {
                 <p className="text-sm text-gray-300 mb-1 drop-shadow">Course Title</p>
                 <p className="text-lg font-medium text-white drop-shadow">{course.title}</p>
               </div>
-              <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium tracking-wide border whitespace-nowrap backdrop-blur-sm ${
-                (!course.status || course.status === "ACTIVE")
+              <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium tracking-wide border whitespace-nowrap backdrop-blur-sm ${(!course.status || course.status === "ACTIVE")
                   ? "bg-green-500/20 text-green-300 border-green-500/30"
                   : "bg-rose-500/20 text-rose-300 border-rose-500/30"
-              }`}>
+                }`}>
                 Status: {course.status || "ACTIVE"}
               </span>
             </div>
