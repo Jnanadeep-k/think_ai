@@ -9,6 +9,10 @@ const dirname = typeof import.meta.dirname !== 'undefined' ? import.meta.dirname
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: "localhost",
+    port: 5173,
+  },
   test: {
     projects: [{
       extends: true,
