@@ -1,252 +1,109 @@
 require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const cors = require('cors');
-const { Server } = require('socket.io');
-const http = require('http');
-
-const roleRoutes = require("./routes/roleRoutes");
-const sessionRoutes = require("./routes/sessionRoutes");
+const User = require('./User');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+app.use(express.json());
+
+const PORT = 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey12345';
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/thinkzai')
+    .then(() => console.log('Successfully connected to MongoDB!'))
+    .catch(err => console.error('Database connection error:', err));
+
+// MIDDLEWARE: Verify JWT Token for Protected Routes
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Expects "Bearer <token>"
+
+    if (!token) {
+        return res.status(401).json({ status: 'error', message: 'Access denied. No token provided.' });
     }
-});
 
-app.set('socketio', io);
-
-io.on('connection', (socket) => {
-    socket.on('join-session', (sessionId) => {
-        socket.join(sessionId);
+    jwt.verify(token, JWT_SECRET, (err, decodedUser) => {
+        if (err) return res.status(403).json({ status: 'error', message: 'Invalid or expired token.' });
+        req.user = decodedUser;
+        next();
     });
-});
-app.use(express.json()); // Allows server to parse incoming JSON payloads
-
-// Mock In-Memory Database Architecture
-const usersDB = [];
-
-// JWT Authorization Signature Key
-const JWT_SECRET = process.env.JWT_SECRET;
-
-// -------------------------------------------------------------
-// 🛠️ TASK 1: CORS Policy Configuration
-// Allows cross-origin requests from Karthik's frontend dashboard
-// -------------------------------------------------------------
-app.use(cors({
-    origin: "*", // Open to all origins for development integration testing
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// -------------------------------------------------------------
-// 🛠️ TASK 2: Response Normalization Layer Middleware
-// Guarantees all responses match an identical structural template
-// -------------------------------------------------------------
-app.use((req, res, next) => {
-    res.normalizeResponse = (statusCode, successFlag, statusMessage, explicitData = null) => {
-        return res.status(statusCode).json({
-            success: successFlag,
-            message: statusMessage,
-            data: explicitData
-        });
-    };
-    next();
-});
-
-// -------------------------------------------------------------
-// 🛠️ TASK 3: API Validation Middleware Layers (Using Joi)
-// Intercepts and reviews inputs before processing database requests
-// -------------------------------------------------------------
-const validateRegisterInput = (req, res, next) => {
-    const schema = Joi.object({
-        email: Joi.string().email().required(),
-        password: Joi.string().min(6).required(),
-        username: Joi.string().min(3).optional()
-    });
-
-    const { error } = schema.validate(req.body);
-    if (error) {
-        return res.normalizeResponse(400, false, `Validation Error: ${error.details[0].message}`);
-    }
-    next();
 };
 
-const validateLoginInput = (req, res, next) => {
-    const schema = Joi.object({
-        email: Joi.string().email().required(),
-        password: Joi.string().min(6).required()
-    });
-
-    const { error } = schema.validate(req.body);
-    if (error) {
-        return res.normalizeResponse(400, false, `Validation Error: ${error.details[0].message}`);
-    }
-    next();
-};
-
-// -------------------------------------------------------------
-// 🛠️ TASK 4: Swagger Documentation Specifications Setup
-// Generates the JSON layout requirements schema details
-// -------------------------------------------------------------
-const swaggerOptions = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'Janadeep Authentication API Management Hub',
-            version: '1.0.0',
-            description: 'Standardized Authentication module specifications with validation and normalization loops.',
-        },
-        servers: [{ url: 'http://localhost:5000/api' }],
-        components: {
-            securitySchemes: {
-                BearerAuth: {
-                    type: 'http',
-                    scheme: 'bearer',
-                    bearerFormat: 'JWT',
-                }
-            }
-        }
-    },
-    apis: ['./server.js'], // Instructs compiler to parse code block tags inside this file
-};
-// -------------------------------------------------------------
-// 🛣️ INTEGRATED ENDPOINTS PATHWAY MAPPINGS (Prefix: /api)
-// -------------------------------------------------------------
-
-/**
- * @openapi
- * /api/register:
- *   post:
- *     summary: Register User Profile
- *     description: Creates a new user with encrypted password hashing.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email: { type: string, example: user@test.com }
- *               password: { type: string, example: pass1234 }
- *               username: { type: string, example: JanadeepDev }
- *     responses:
- *       201: { description: Successfully created }
- *       400: { description: Validation fail or duplication error }
- */
-app.post('/api/register', validateRegisterInput, async (req, res) => {
+// 1. REGISTER ROUTE
+app.post('/register', async (req, res) => {
     try {
-        const { email, password, username } = req.body;
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ status: 'error', message: 'Email and password are required.' });
+        }
 
-        const userExists = usersDB.find(u => u.email === email);
-        if (userExists) {
-            return res.normalizeResponse(400, false, "Email profile is already registered.");
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ status: 'error', message: 'Email already registered.' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = { id: Date.now(), email, password: hashedPassword, username: username || "User" };
-        usersDB.push(newUser);
+        const newUser = new User({ email, password: hashedPassword });
+        await newUser.save();
 
-        return res.normalizeResponse(201, true, "Registration successfully processed!", { userId: newUser.id });
-    } catch (err) {
-        return res.normalizeResponse(500, false, "Server crash error encountered during generation.");
+        // Standard Auth Response Format
+        res.status(201).json({
+            status: 'success',
+            message: 'User registered successfully.',
+            data: { userId: newUser._id, email: newUser.email }
+        });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-/**
- * @openapi
- * /api/login:
- *   post:
- *     summary: User Login Verification
- *     description: Authenticates profile parameters and returns a signed bearer JWT access token.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email: { type: string, example: user@test.com }
- *               password: { type: string, example: pass1234 }
- *     responses:
- *       200: { description: Logged in successfully }
- *       401: { description: Invalid credentials }
- */
-app.post('/api/login', validateLoginInput, async (req, res) => {
+// 2. LOGIN ROUTE
+app.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        const user = usersDB.find(u => u.email === email);
-        if (!user) {
-            return res.normalizeResponse(401, false, "Invalid email address or passcode sequence.");
+        if (!email || !password) {
+            return res.status(400).json({ status: 'error', message: 'Email and password are required.' });
         }
 
-        const passesMatch = await bcrypt.compare(password, user.password);
-        if (!passesMatch) {
-            return res.normalizeResponse(401, false, "Invalid email address or passcode sequence.");
+        const user = await User.findOne({ email });
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(400).json({ status: 'error', message: 'Invalid email or password.' });
         }
 
-        // Generate Secure JSON Web Token Session Key
-        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
 
-        return res.normalizeResponse(200, true, "Authentication verification passed successfully.", {
-            profile: { id: user.id, email: user.email, username: user.username },
-            accessToken: token
+        // Standard Auth Response Format
+        res.status(200).json({
+            status: 'success',
+            message: 'Authentication successful.',
+            data: {
+                token: token,
+                user: { userId: user._id, email: user.email }
+            }
         });
-    } catch (err) {
-        return res.normalizeResponse(500, false, "Internal gateway verification failure.");
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 
-/**
- * @openapi
- * /api/me:
- *   get:
- *     summary: Verify User Session
- *     description: Decodes Bearer token from header metadata to authorize current session state.
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200: { description: Session authenticated }
- *       401: { description: Missing or broken auth header parameters }
- */
-app.get('/api/me', (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.normalizeResponse(401, false, "Access Denied: Missing authentication token header.");
-    }
-
-    const token = authHeader.split(' ')[1];
+// 3. /ME ROUTE (Protected Route using JWT)
+app.get('/me', authenticateToken, async (req, res) => {
     try {
-        const verifiedData = jwt.verify(token, JWT_SECRET);
-        const userProfile = usersDB.find(u => u.id === verifiedData.id);
+        const user = await User.findById(req.user.id).select('-password'); // Exclude password from response
+        if (!user) return res.status(444).json({ status: 'error', message: 'User not found.' });
 
-        if (!userProfile) {
-            return res.normalizeResponse(404, false, "User matching token parameters was not discovered.");
-        }
-
-        return res.normalizeResponse(200, true, "Active tracking validation payload extracted.", {
-            user: { id: userProfile.id, email: userProfile.email, username: userProfile.username }
+        res.status(200).json({
+            status: 'success',
+            data: { user }
         });
-    } catch (err) {
-        return res.normalizeResponse(401, false, "Authorization session expired or modified corrupt token.");
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
-//Admin routes
-app.use('/api/admin', roleRoutes);
 
-// ENGINE BOOT STRAP PROCESS
-const PORT = 5000;
-
-server.listen(PORT, () => {
-    console.log("==============================================");
-    console.log(`Authentication Backend active at http://localhost:${PORT}`);
-    console.log(`Interactive Swagger Docs page: http://localhost:${PORT}/api-docs`);
-    console.log("==============================================");
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
