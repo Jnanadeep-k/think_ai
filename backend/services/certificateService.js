@@ -1,6 +1,14 @@
-const repository = require("../repositories/certificateRepository");
-const progressRepository = require("../repositories/lessonProgressRepository");
-const prisma = require("../config/database");
+const repository =
+    require("../repositories/certificateRepository");
+
+const progressRepository =
+    require("../repositories/lessonProgressRepository");
+
+const assessmentService =
+    require("./assessmentService");
+
+const prisma =
+    require("../config/database");
 
 const {
     generateCertificatePdf
@@ -9,39 +17,61 @@ const {
 
 const generateCertificateNumber = () => {
 
-    const timestamp = Date.now();
+    const timestamp =
+        Date.now();
 
-    const random = Math.floor(
-        1000 + Math.random() * 9000
-    );
+    const random =
+        Math.floor(
+            1000 + Math.random() * 9000
+        );
 
     return `CERT-${new Date().getFullYear()}-${timestamp}-${random}`;
 };
 
 
 /*
- * Generate certificate after reaching 80% completion
+ * Generate certificate only when:
+ *
+ * 1. Course completion >= 80%
+ * 2. All required assessments are passed
+ * 3. Assessment passing percentage >= 40%
  */
-const generateCertificate = async (enrollmentId) => {
+const generateCertificate = async (
+    enrollmentId
+) => {
 
     enrollmentId = Number(enrollmentId);
 
-    // 1. Check if certificate already exists
+
+    /*
+     * ---------------------------------------------
+     * 1. Check if certificate already exists
+     * ---------------------------------------------
+     */
+
     const existingCertificate =
         await repository.getCertificateByEnrollment(
             enrollmentId
         );
 
+
     if (existingCertificate) {
+
         return existingCertificate;
     }
 
 
-    // 2. Get course progress
+    /*
+     * ---------------------------------------------
+     * 2. Get course progress
+     * ---------------------------------------------
+     */
+
     const progress =
         await progressRepository.getProgressSummary(
             enrollmentId
         );
+
 
     const {
         totalLessons,
@@ -49,18 +79,29 @@ const generateCertificate = async (enrollmentId) => {
     } = progress;
 
 
-    // 3. Calculate completion percentage
+    /*
+     * ---------------------------------------------
+     * 3. Calculate course completion
+     * ---------------------------------------------
+     */
+
     const completionPercentage =
         totalLessons === 0
             ? 0
             : Number(
                 (
-                    (completedLessons / totalLessons) * 100
+                    (completedLessons / totalLessons) *
+                    100
                 ).toFixed(2)
             );
 
 
-    // 4. Check 80% requirement
+    /*
+     * ---------------------------------------------
+     * 4. Check 80% course completion
+     * ---------------------------------------------
+     */
+
     if (completionPercentage < 80) {
 
         throw new Error(
@@ -69,14 +110,49 @@ const generateCertificate = async (enrollmentId) => {
     }
 
 
-    // 5. Get enrollment and course details
+    /*
+     * ---------------------------------------------
+     * 5. Check assessment requirements
+     *
+     * Every required assessment must have
+     * at least one passing submission.
+     *
+     * Passing percentage = 40%
+     * ---------------------------------------------
+     */
+
+    const assessmentStatus =
+        await assessmentService
+            .getEnrollmentAssessmentStatus(
+                enrollmentId
+            );
+
+
+    if (!assessmentStatus.allPassed) {
+
+        throw new Error(
+            `Certificate not available. ${assessmentStatus.passedAssessments} of ${assessmentStatus.totalAssessments} required assessments have been passed. Minimum passing percentage is 40%.`
+        );
+    }
+
+
+    /*
+     * ---------------------------------------------
+     * 6. Get enrollment and course details
+     * ---------------------------------------------
+     */
+
     const enrollment =
         await prisma.enrollment.findUnique({
+
             where: {
                 id: enrollmentId
             },
+
             include: {
+
                 batch: {
+
                     include: {
                         course: true
                     }
@@ -86,54 +162,95 @@ const generateCertificate = async (enrollmentId) => {
 
 
     if (!enrollment) {
-        throw new Error("Enrollment not found");
+
+        throw new Error(
+            "Enrollment not found"
+        );
     }
 
 
-    const course = enrollment.batch.course;
+    const course =
+        enrollment.batch.course;
 
 
-    // 6. Generate unique certificate number
+    /*
+     * ---------------------------------------------
+     * 7. Generate unique certificate number
+     * ---------------------------------------------
+     */
+
     const certificateNo =
         generateCertificateNumber();
 
 
-    // 7. Create verification URL  //we have to change this to the frontend url when we deploy the frontend
+    /*
+     * ---------------------------------------------
+     * 8. Create verification URL
+     * ---------------------------------------------
+     */
+
     const baseUrl =
         process.env.APP_URL ||
         "http://localhost:3000";
+
 
     const verificationUrl =
         `${baseUrl}/verify/${certificateNo}`;
 
 
-    // 8. Create certificate database record
+    /*
+     * ---------------------------------------------
+     * 9. Create certificate database record
+     * ---------------------------------------------
+     */
+
     const certificate =
         await repository.createCertificate({
+
             certificateNo,
+
             enrollmentId,
-            studentName: enrollment.studentName,
-            courseName: course.title,
+
+            studentName:
+                enrollment.studentName,
+
+            courseName:
+                course.title,
+
             instructorName:
                 course.instructorName || null,
+
             completionPercentage,
+
             verificationUrl
         });
 
 
-    // 9. Generate PDF
+    /*
+     * ---------------------------------------------
+     * 10. Generate PDF
+     * ---------------------------------------------
+     */
+
     const pdfPath =
         await generateCertificatePdf(
             certificate
         );
 
 
-    // 10. Update certificate with PDF path
+    /*
+     * ---------------------------------------------
+     * 11. Save PDF path
+     * ---------------------------------------------
+     */
+
     const updatedCertificate =
         await prisma.certificate.update({
+
             where: {
                 id: certificate.id
             },
+
             data: {
                 pdfUrl: pdfPath
             }
@@ -145,21 +262,28 @@ const generateCertificate = async (enrollmentId) => {
 
 
 /*
+ * ---------------------------------------------
  * Get certificate by enrollment
+ * ---------------------------------------------
  */
+
 const getCertificateByEnrollment = async (
     enrollmentId
 ) => {
 
-    return await repository.getCertificateByEnrollment(
-        Number(enrollmentId)
-    );
+    return await repository
+        .getCertificateByEnrollment(
+            Number(enrollmentId)
+        );
 };
 
 
 /*
+ * ---------------------------------------------
  * Verify certificate
+ * ---------------------------------------------
  */
+
 const verifyCertificate = async (
     certificateNo
 ) => {
@@ -173,35 +297,48 @@ const verifyCertificate = async (
     if (!certificate) {
 
         return {
+
             valid: false,
-            message: "Certificate not found"
+
+            message:
+                "Certificate not found"
         };
     }
 
 
     return {
+
         valid: true,
+
         certificate
     };
 };
 
 
 /*
- * Get certificate by certificate number
+ * ---------------------------------------------
+ * Get certificate by number
+ * ---------------------------------------------
  */
+
 const getCertificateByNumber = async (
     certificateNo
 ) => {
 
-    return await repository.getCertificateByNumber(
-        certificateNo
-    );
+    return await repository
+        .getCertificateByNumber(
+            certificateNo
+        );
 };
 
 
 module.exports = {
+
     generateCertificate,
+
     getCertificateByEnrollment,
+
     verifyCertificate,
+
     getCertificateByNumber
 };
