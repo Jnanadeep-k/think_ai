@@ -1,7 +1,9 @@
 const jwt = require('jsonwebtoken');
+
 const disconnectedUsers = new Map(); // userId -> { rooms: Set, disconnectedAt, timeoutHandle }
 const RECONNECT_GRACE_MS = 30000; // 30 seconds to reconnect before we consider them gone
-// In-memory connection state tracking (swap for Redis later if needed)
+
+// In-memory connection state tracking
 const activeConnections = new Map(); // socketId -> { userId, role, rooms: Set, connectedAt }
 const roomMembers = new Map();       // roomName -> Set of socketIds
 const activityRateLimits = new Map(); // socketId -> { count, windowStart }
@@ -10,33 +12,22 @@ const RATE_LIMIT_WINDOW_MS = 10000; // per 10 seconds
 
 const EVENTS = require('./events');
 const sessionManager = require('./sessionManager');
-module.exports = function (io) {
-  // ---- AUTH MIDDLEWARE ----
-  io.use((socket, next) => {
-    try {
-const EVENTS = require('./events');
-const sessionManager = require('./sessionManager');
+
 module.exports = function (io) {
   // ---- AUTH MIDDLEWARE ----
   io.use((socket, next) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.headers['authorization'];
-      const demoRole = socket.handshake.headers['x-demo-role'] || socket.handshake.query["x-demo-role"];// same pattern as REST role-filtering
+      const demoRole = socket.handshake.headers['x-demo-role'] || socket.handshake.query["x-demo-role"];
 
       if (token) {
         const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
         socket.user = { id: decoded.id || decoded.userId, role: decoded.role };
       } else if (demoRole) {
-        const demoUserId = socket.handshake.headers['x-demo-user-id'] || socket.handshake.query["x-demo-user-id"];
-        // TEMP fallback for local/demo testing — mirrors REST x-demo-role pattern
+        const demoUserId = socket.handshake.headers['x-demo-user-id'] || socket.handshake.query["x-demo-user-id"] || `demo-${socket.id}`;
         socket.user = { id: demoUserId, role: demoRole };
       } else {
-        return next(new Error('Authentication required: no token or demo role provided'));
-        const demoUserId = socket.handshake.headers['x-demo-user-id'] || `demo-${socket.id}`;
-        // TEMP fallback for local/demo testing — mirrors REST x-demo-role pattern
-        socket.user = { id: demoUserId, role: demoRole };
-      } else {
-        // TEMP: allow anonymous connection for now so frontend devs aren't blocked
+        // Fallback: allow anonymous connection for local testing
         socket.user = { id: `anon-${socket.id}`, role: 'guest' };
       }
 
@@ -50,13 +41,13 @@ module.exports = function (io) {
   io.on('connection', (socket) => {
     const { id: userId, role } = socket.user;
 
-    // Check if this user is reconnecting within the grace period
+    // Check if user is reconnecting within the grace period
     if (disconnectedUsers.has(userId)) {
       const prevState = disconnectedUsers.get(userId);
       clearTimeout(prevState.timeoutHandle);
       disconnectedUsers.delete(userId);
 
-      // Rejoin their previous rooms automatically
+      // Rejoin previous rooms automatically
       prevState.rooms.forEach((roomName) => {
         socket.join(roomName);
         if (!roomMembers.has(roomName)) roomMembers.set(roomName, new Set());
@@ -82,6 +73,7 @@ module.exports = function (io) {
       });
       console.log(`[socket] connected: ${socket.id} (user=${userId}, role=${role})`);
     }
+
     // ---- ROOM: JOIN ----
     socket.on(EVENTS.ROOM_JOIN, (roomName, ack) => {
       if (!roomName || typeof roomName !== 'string') {
@@ -123,38 +115,33 @@ module.exports = function (io) {
     socket.on(EVENTS.USER_ACTIVITY, (payload) => {
       const { roomName, action } = payload || {};
       if (!roomName || !action) return;
-const now = Date.now();
-const limit = activityRateLimits.get(socket.id) || { count: 0, windowStart: now };
-if (now - limit.windowStart > RATE_LIMIT_WINDOW_MS) {
-  limit.count = 0;
-  limit.windowStart = now;
-}
-limit.count++;
-activityRateLimits.set(socket.id, limit);
-if (limit.count > RATE_LIMIT_MAX) {
-  return;
-}
 
-socket.to(roomName).emit(EVENTS.USER_ACTIVITY, { userId, socketId: socket.id, roomName, action, timestamp: now });
+      const now = Date.now();
+      const limit = activityRateLimits.get(socket.id) || { count: 0, windowStart: now };
+      if (now - limit.windowStart > RATE_LIMIT_WINDOW_MS) {
+        limit.count = 0;
+        limit.windowStart = now;
+      }
+      limit.count++;
+      activityRateLimits.set(socket.id, limit);
+      if (limit.count > RATE_LIMIT_MAX) return;
 
-const userSessions = sessionManager.getSessionsForUser(userId).filter((s) => s.roomName === roomName);
-userSessions.forEach((s) => sessionManager.updateSession(s.sessionId, { lastAction: action }));
-      socket.to(roomName).emit(EVENTS.USER_ACTIVITY, { userId, socketId: socket.id, roomName, action, timestamp: new Date().toISOString() });
+      socket.to(roomName).emit(EVENTS.USER_ACTIVITY, { userId, socketId: socket.id, roomName, action, timestamp: new Date(now).toISOString() });
 
       const userSessions = sessionManager.getSessionsForUser(userId).filter((s) => s.roomName === roomName);
       userSessions.forEach((s) => sessionManager.updateSession(s.sessionId, { lastAction: action }));
     });
-    
-    // ---- DISCONNECT: start grace period (may be a reconnect) ----
+
+    // ---- DISCONNECT: start grace period ----
     socket.on('disconnect', (reason) => {
       const conn = activeConnections.get(socket.id);
       if (conn) {
-        // Remove from room member lists immediately (so counts are accurate)
+        // Remove from room member lists immediately
         conn.rooms.forEach((roomName) => {
           roomMembers.get(roomName)?.delete(socket.id);
         });
 
-        // Hold their room membership in a grace window in case they reconnect
+        // Hold room membership in grace window
         const timeoutHandle = setTimeout(() => {
           conn.rooms.forEach((roomName) => {
             socket.to(roomName).emit(EVENTS.ROOM_USER_LEFT, { userId, socketId: socket.id, roomName });
@@ -165,14 +152,13 @@ userSessions.forEach((s) => sessionManager.updateSession(s.sessionId, { lastActi
 
         disconnectedUsers.set(userId, { rooms: conn.rooms, disconnectedAt: new Date().toISOString(), timeoutHandle });
       }
-activityRateLimits.delete(socket.id);
-activeConnections.delete(socket.id);
-console.log([socket] disconnected: ${socket.id} (reason: ${reason}) — grace period started);
+
+      activityRateLimits.delete(socket.id);
       activeConnections.delete(socket.id);
       console.log(`[socket] disconnected: ${socket.id} (reason: ${reason}) — grace period started`);
     });
   });
 
-  // Expose state for the connection state API (next step)
+  // Expose state for connection state API
   return { activeConnections, roomMembers };
 };
