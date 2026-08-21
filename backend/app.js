@@ -6,7 +6,6 @@ const path = require("path");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
 
-// Routes
 const courseRoutes = require("./routes/courseRoutes");
 const batchRoutes = require("./routes/batchRoutes");
 const enrollmentRoutes = require("./routes/enrollmentRoutes");
@@ -21,13 +20,7 @@ const analyticsRoutes = require("./routes/analytics");
 
 const app = express();
 
-
-// ----------------------------------------------------
-// Middlewares
-// ----------------------------------------------------
-
 app.use(cors());
-
 app.use(express.json());
 
 app.use(
@@ -38,11 +31,6 @@ app.use(
 
 app.use(morgan("dev"));
 
-
-// ----------------------------------------------------
-// Additional API Routes
-// ----------------------------------------------------
-
 app.use(
     "/api/audit-logs",
     auditLogRoutes
@@ -52,11 +40,6 @@ app.use(
     "/api/analytics",
     analyticsRoutes
 );
-
-
-// ----------------------------------------------------
-// Swagger Configuration
-// ----------------------------------------------------
 
 const swaggerOptions = {
     definition: {
@@ -71,7 +54,7 @@ const swaggerOptions = {
 
         servers: [
             {
-                url: "http://localhost:3000"
+                url: "http://localhost:5000"
             }
         ]
     },
@@ -88,11 +71,6 @@ app.use(
     swaggerUi.setup(swaggerSpec)
 );
 
-
-// ----------------------------------------------------
-// Home Route
-// ----------------------------------------------------
-
 app.get("/", (req, res) => {
     res.status(200).json({
         success: true,
@@ -100,11 +78,6 @@ app.get("/", (req, res) => {
             "Thinkz LMS Backend Running Successfully"
     });
 });
-
-
-// ----------------------------------------------------
-// Serve Generated Certificate PDFs
-// ----------------------------------------------------
 
 app.use(
     "/certificates",
@@ -115,11 +88,6 @@ app.use(
         )
     )
 );
-
-
-// ----------------------------------------------------
-// API Routes
-// ----------------------------------------------------
 
 app.use(
     "/api/courses",
@@ -161,19 +129,9 @@ app.use(
     assessmentRoutes
 );
 
-
-// ----------------------------------------------------
-// Code Execution
-// ----------------------------------------------------
-
 app.use(
     "/api/code",
     codeExecutionRoutes
 );
-
-
-// ----------------------------------------------------
-// Export App
-// ----------------------------------------------------
 
 module.exports = app;
