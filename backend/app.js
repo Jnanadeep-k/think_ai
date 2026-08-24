@@ -9,6 +9,10 @@ const swaggerJsdoc = require("swagger-jsdoc");
 const courseRoutes = require("./routes/courseRoutes");
 const batchRoutes = require("./routes/batchRoutes");
 const enrollmentRoutes = require("./routes/enrollmentRoutes");
+const authRoutes = require("./routes/authRoutes")
+const adminUsers = require("./routes/adminUsers");
+const roleRoutes = require("./routes/roleRoutes");
+const demoRoutes = require("./routes/demoRoutes");
 const moduleRoutes = require("./routes/moduleRoutes");
 const lessonRoutes = require("./routes/lessonRoutes");
 const lessonProgressRoutes = require("./routes/lessonProgressRoutes");
@@ -30,6 +34,20 @@ app.use(
 );
 
 app.use(morgan("dev"));
+const session = require('express-session');
+const passport = require('passport');
+require('./config/passport');
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your_secret_fallback',
+    resave: false,
+    saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Mount Demo Routes
+app.use('/api/demo', demoRoutes);
 
 app.use(
     "/api/audit-logs",
@@ -79,6 +97,14 @@ app.get("/", (req, res) => {
     });
 });
 
+// API Routes
+app.use("/api/courses", courseRoutes);
+app.use("/api/batches", batchRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
+// The New Routes Anand Requested
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminUsers);
+app.use("/api/roles", roleRoutes);
 app.use(
     "/certificates",
     express.static(
