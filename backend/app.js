@@ -134,4 +134,12 @@ app.use(
     codeExecutionRoutes
 );
 
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    service: "think-ai-backend",
+    timestamp: new Date().toISOString()
+  });
+});
+
 module.exports = app;
