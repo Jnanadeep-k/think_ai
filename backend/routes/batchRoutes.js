@@ -2,14 +2,29 @@ const express = require("express");
 
 const router = express.Router();
 
+
 const {
     getBatches,
     getBatchById,
     createBatch,
     updateBatch,
     deleteBatch,
-    getBatchEnrollments
+    getBatchEnrollments,
+    autoAllocateStudent
 } = require("../controllers/batchController");
+
+
+const {
+    validateBatchCreate,
+    validateBatchUpdate,
+    validateBatchId,
+    validateBatchEnrollmentId
+} = require("../validations/batchValidation");
+
+
+// ----------------------------------------------------
+// Swagger
+// ----------------------------------------------------
 
 /**
  * @swagger
@@ -18,38 +33,74 @@ const {
  *   description: Batch Management APIs
  */
 
+
 /**
  * @swagger
  * /api/batches:
  *   get:
  *     summary: Get all batches
+ *     description: Returns all batches with course information and enrollment count.
  *     tags: [Batches]
  *     responses:
  *       200:
- *         description: List of batches
+ *         description: Batches retrieved successfully
+ *       500:
+ *         description: Failed to retrieve batches
  */
-router.get("/", getBatches);
+router.get(
+    "/",
+    getBatches
+);
+
 
 /**
  * @swagger
- * /api/batches/{id}:
- *   get:
- *     summary: Get batch by ID
+ * /api/batches/auto-allocate:
+ *   post:
+ *     summary: Automatically allocate a student to a batch
+ *     description: >
+ *       Finds an active batch belonging to the selected course that has
+ *       available capacity and automatically enrolls the student.
  *     tags: [Batches]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         example: 1
+ *
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentName
+ *               - studentEmail
+ *               - courseId
+ *             properties:
+ *               studentName:
+ *                 type: string
+ *                 example: Rahul Kumar
+ *               studentEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: rahul@gmail.com
+ *               courseId:
+ *                 type: integer
+ *                 minimum: 1
+ *                 example: 1
+ *
  *     responses:
- *       200:
- *         description: Batch details
- *       404:
- *         description: Batch not found
+ *       201:
+ *         description: Student automatically allocated successfully
+ *       400:
+ *         description: Invalid student or course information
+ *       409:
+ *         description: No suitable batch available
+ *       500:
+ *         description: Internal server error
  */
-router.get("/:id", getBatchById);
+router.post(
+    "/auto-allocate",
+    autoAllocateStudent
+);
+
 
 /**
  * @swagger
@@ -57,6 +108,7 @@ router.get("/:id", getBatchById);
  *   post:
  *     summary: Create a new batch
  *     tags: [Batches]
+ *
  *     requestBody:
  *       required: true
  *       content:
@@ -76,12 +128,14 @@ router.get("/:id", getBatchById);
  *                 example: Node.js Weekend Batch
  *               courseId:
  *                 type: integer
+ *                 minimum: 1
  *                 example: 1
  *               instructorName:
  *                 type: string
  *                 example: John Doe
  *               capacity:
  *                 type: integer
+ *                 minimum: 1
  *                 example: 50
  *               startDate:
  *                 type: string
@@ -93,12 +147,59 @@ router.get("/:id", getBatchById);
  *                 example: "2026-10-15T00:00:00.000Z"
  *               status:
  *                 type: string
+ *                 enum:
+ *                   - ACTIVE
+ *                   - INACTIVE
+ *                 default: ACTIVE
  *                 example: ACTIVE
+ *
  *     responses:
  *       201:
  *         description: Batch created successfully
+ *       400:
+ *         description: Batch validation failed
+ *       500:
+ *         description: Internal server error
  */
-router.post("/", createBatch);
+router.post(
+    "/",
+    validateBatchCreate,
+    createBatch
+);
+
+
+/**
+ * @swagger
+ * /api/batches/{id}:
+ *   get:
+ *     summary: Get batch by ID
+ *     tags: [Batches]
+ *
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         example: 1
+ *
+ *     responses:
+ *       200:
+ *         description: Batch found
+ *       400:
+ *         description: Invalid batch ID
+ *       404:
+ *         description: Batch not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+    "/:id",
+    validateBatchId,
+    getBatchById
+);
+
 
 /**
  * @swagger
@@ -106,13 +207,16 @@ router.post("/", createBatch);
  *   put:
  *     summary: Update batch
  *     tags: [Batches]
+ *
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 1
+ *
  *     requestBody:
  *       required: true
  *       content:
@@ -125,12 +229,14 @@ router.post("/", createBatch);
  *                 example: MERN Stack Batch
  *               courseId:
  *                 type: integer
+ *                 minimum: 1
  *                 example: 2
  *               instructorName:
  *                 type: string
  *                 example: Jane Smith
  *               capacity:
  *                 type: integer
+ *                 minimum: 1
  *                 example: 60
  *               startDate:
  *                 type: string
@@ -142,14 +248,28 @@ router.post("/", createBatch);
  *                 example: "2026-11-01T00:00:00.000Z"
  *               status:
  *                 type: string
+ *                 enum:
+ *                   - ACTIVE
+ *                   - INACTIVE
  *                 example: ACTIVE
+ *
  *     responses:
  *       200:
  *         description: Batch updated successfully
+ *       400:
+ *         description: Batch validation failed
  *       404:
  *         description: Batch not found
+ *       500:
+ *         description: Internal server error
  */
-router.put("/:id", updateBatch);
+router.put(
+    "/:id",
+    validateBatchId,
+    validateBatchUpdate,
+    updateBatch
+);
+
 
 /**
  * @swagger
@@ -157,20 +277,34 @@ router.put("/:id", updateBatch);
  *   delete:
  *     summary: Delete batch
  *     tags: [Batches]
+ *
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 1
+ *
  *     responses:
  *       200:
  *         description: Batch deleted successfully
+ *       400:
+ *         description: Invalid batch ID
  *       404:
  *         description: Batch not found
+ *       409:
+ *         description: Batch has existing enrollments
+ *       500:
+ *         description: Internal server error
  */
-router.delete("/:id", deleteBatch);
+router.delete(
+    "/:id",
+    validateBatchId,
+    deleteBatch
+);
+
 
 /**
  * @swagger
@@ -178,17 +312,29 @@ router.delete("/:id", deleteBatch);
  *   get:
  *     summary: Get all enrollments of a batch
  *     tags: [Batches]
+ *
  *     parameters:
  *       - in: path
  *         name: batchId
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
  *         example: 1
+ *
  *     responses:
  *       200:
- *         description: List of enrollments
+ *         description: Batch enrollments retrieved successfully
+ *       400:
+ *         description: Invalid batch ID
+ *       500:
+ *         description: Failed to retrieve batch enrollments
  */
-router.get("/:batchId/enrollments", getBatchEnrollments);
+router.get(
+    "/:batchId/enrollments",
+    validateBatchEnrollmentId,
+    getBatchEnrollments
+);
+
 
 module.exports = router;

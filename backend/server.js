@@ -1,9 +1,30 @@
 require("dotenv").config();
 
+const http = require("http");
+const { Server } = require("socket.io");
+
 const app = require("./app");
 
-const PORT = process.env.PORT || 3000;
+const { startWorker } = require("./services/notificationQueueService");
+const initSockets = require("./sockets/index");
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+require("./config/db");
+
+const httpServer = http.createServer(app);
+
+const io = new Server(httpServer, {
+    cors: {
+        origin: "*"
+    }
 });
+
+initSockets(io);
+
+const PORT = process.env.PORT || 5000;
+
+httpServer.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log("[socket] Socket.IO attached and listening");
+});
+
+startWorker();
