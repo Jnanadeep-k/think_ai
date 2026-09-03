@@ -24,7 +24,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.2",
+    "express-rate-limit": "^8.7.0",
     "express-session": "^1.19.0",
     "joi": "^18.2.3",
     "jsonwebtoken": "^9.0.3",
@@ -35,6 +35,10 @@
     "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
-    "twilio": "^6.1.0"
+    "twilio": "^6.1.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }
