@@ -1,6 +1,7 @@
 const Comment = require("../models/Comment");
 const Discussion = require("../models/Discussion");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 function buildQueueItem(kind, item) {
     const author = User.findById(item.authorId);
@@ -39,6 +40,12 @@ function banUser(req, res) {
     if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
     }
+    Notification.create({
+        userId: req.params.id,
+        type: "moderation",
+        message: "Your account has been banned by a moderator.",
+        link: "/forum"
+    });
     res.status(200).json({ success: true, data: user });
 }
 
@@ -47,7 +54,46 @@ function unbanUser(req, res) {
     if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
     }
+    Notification.create({
+        userId: req.params.id,
+        type: "moderation",
+        message: "Your account has been unbanned.",
+        link: "/forum"
+    });
     res.status(200).json({ success: true, data: user });
+}
+
+function warnUser(req, res) {
+    const user = User.setWarned(req.params.id, true);
+    if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+    }
+    Notification.create({
+        userId: req.params.id,
+        type: "moderation",
+        message: "You have received a warning from a moderator.",
+        link: "/forum"
+    });
+    res.status(200).json({ success: true, data: user });
+}
+
+function muteUser(req, res) {
+    const { muted } = req.body || {};
+    const user = User.setMuted(req.params.id, muted !== false);
+    if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+    }
+    Notification.create({
+        userId: req.params.id,
+        type: "moderation",
+        message: muted !== false ? "You have been muted." : "You have been unmuted.",
+        link: "/forum"
+    });
+    res.status(200).json({ success: true, data: user });
+}
+
+function getAuditLog(_req, res) {
+    res.status(200).json({ success: true, data: User.getAuditLog() });
 }
 
 function setContentVisibility(req, res) {
@@ -61,6 +107,7 @@ function setContentVisibility(req, res) {
     if (!updated) {
         return res.status(404).json({ success: false, message: `${type} not found` });
     }
+    User.logAuditAction({ type: hidden ? "hide_content" : "show_content", targetContentId: id, contentType: type });
     res.status(200).json({
         success: true,
         data: { id, type, hidden: Boolean(updated.hidden) }
@@ -75,6 +122,7 @@ function resolveContent(req, res) {
     if (!updated) {
         return res.status(404).json({ success: false, message: `${type} not found` });
     }
+    User.logAuditAction({ type: "resolve_flag", targetContentId: id, contentType: type });
     res.status(200).json({ success: true, data: { id, type, resolved: true } });
 }
 
@@ -90,4 +138,4 @@ function hiddenContent(_req, res) {
     res.status(200).json({ success: true, data: items });
 }
 
-module.exports = { flaggedQueue, hiddenContent, listUsers, banUser, unbanUser, setContentVisibility, resolveContent };
+module.exports = { flaggedQueue, hiddenContent, listUsers, banUser, unbanUser, warnUser, muteUser, setContentVisibility, resolveContent, getAuditLog };

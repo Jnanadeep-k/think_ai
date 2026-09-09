@@ -27,6 +27,7 @@ function validateDiscussionInput({ title, body }) {
  * Designed to stay fast for thousands of posts (single pass over the archive).
  */
 function listDiscussions(query, currentUserId) {
+    const startTime = Date.now();
     const {
         search,
         tag,
@@ -88,9 +89,18 @@ function listDiscussions(query, currentUserId) {
 
     const sortKey = sort || "recent";
     items.sort((a, b) => {
+        if (sortKey === "relevance" && searchText) {
+            const aTitle = a.title.toLowerCase().includes(searchText) ? 2 : 0;
+            const aBody = a.body.toLowerCase().includes(searchText) ? 1 : 0;
+            const bTitle = b.title.toLowerCase().includes(searchText) ? 2 : 0;
+            const bBody = b.body.toLowerCase().includes(searchText) ? 1 : 0;
+            const scoreDiff = (bTitle + bBody) - (aTitle + aBody);
+            if (scoreDiff !== 0) return scoreDiff;
+        }
         if (sortKey === "votes") return (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes);
         if (sortKey === "title") return a.title.localeCompare(b.title);
         if (sortKey === "views") return b.views - a.views;
+        if (sortKey === "relevance" && !searchText) return new Date(b.createdAt) - new Date(a.createdAt);
         return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
@@ -100,12 +110,18 @@ function listDiscussions(query, currentUserId) {
     const pageNum = Math.min(Math.max(parseInt(page, 10) || 1, 1), totalPages);
     const start = (pageNum - 1) * limitNum;
 
+    const responseTimeMs = Date.now() - startTime;
+    if (responseTimeMs > 500) {
+        console.warn(`[PERF] Slow search query (${responseTimeMs}ms):`, { search, tag, author, sort, page });
+    }
+
     return {
         items: items.slice(start, start + limitNum).map((d) => Discussion.serialize(d, currentUserId)),
         page: pageNum,
         limit: limitNum,
         total,
-        totalPages
+        totalPages,
+        responseTimeMs
     };
 }
 

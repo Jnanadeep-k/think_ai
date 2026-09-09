@@ -143,6 +143,7 @@ export default function DiscussionListPage() {
                   ? "Try adjusting your search or filters."
                   : "Be the first to start a conversation with the community."
               }
+              searchTerm={filters.search || ""}
             />
             <PaginationControls page={meta.page} totalPages={meta.totalPages} onChange={setPage} />
             <p className="pagination__info" style={{ textAlign: "center", marginTop: 8 }}>

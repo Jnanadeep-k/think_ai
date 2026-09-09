@@ -30,13 +30,14 @@ export default function BookmarksPage() {
   }, []);
 
   const handleRemove = async (discussionId) => {
-    // Optimistic removal, restore on failure.
-    const snapshot = bookmarks;
+    const removedBookmark = bookmarks.find((b) => b.discussionId === discussionId);
     setBookmarks((previous) => previous.filter((b) => b.discussionId !== discussionId));
     try {
-      await removeBookmark(bookmarks.find((b) => b.discussionId === discussionId)?.userId, discussionId);
+      await removeBookmark(removedBookmark?.userId, discussionId);
     } catch {
-      setBookmarks(snapshot);
+      if (removedBookmark) {
+        setBookmarks((previous) => [...previous, removedBookmark].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      }
       setError("Could not remove bookmark — restored");
     }
   };
