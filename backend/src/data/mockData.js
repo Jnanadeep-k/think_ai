@@ -392,11 +392,10 @@ const studioSessions = [
     {
         id: "s1",
         title: "React Hooks Deep Dive — Live Class",
-        hostId: "u3",
+        hostId: "u1",
         status: "live",
         startedAt: isoAgo(0, -1),
         attendees: [
-            { userId: "u3", name: "Rahul Verma", online: true, muted: false, cameraOn: true, raisedHand: false },
             { userId: "u1", name: "Aarav Sharma", online: true, muted: true, cameraOn: false, raisedHand: false },
             { userId: "u2", name: "Priya Nair", online: true, muted: true, cameraOn: true, raisedHand: true },
             { userId: "u4", name: "Sneha Iyer", online: false, muted: true, cameraOn: false, raisedHand: false },
@@ -416,7 +415,6 @@ const studioSessions = [
             }
         ],
         messages: [
-            { id: makeId("msg"), userId: "u3", userName: "Rahul Verma", text: "Welcome everyone! We start with custom hooks.", timestamp: isoAgo(0, -1), deleted: false },
             { id: makeId("msg"), userId: "u2", userName: "Priya Nair", text: "Audio is clear on my side.", timestamp: isoAgo(0, -1), deleted: false },
             { id: makeId("msg"), userId: "u1", userName: "Aarav Sharma", text: "Can we revisit the cleanup function example?", timestamp: isoAgo(0), deleted: false }
         ]

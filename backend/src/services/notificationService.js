@@ -22,8 +22,38 @@ function notifyMentions({ text, authorId, message, link }) {
         );
 }
 
+/**
+ * Notify the discussion author when someone replies to their thread.
+ */
+function notifyReply({ discussionAuthorId, replierName, discussionId, discussionTitle }) {
+    if (!discussionAuthorId) return null;
+    const prefs = Notification.getPrefs(discussionAuthorId);
+    if (prefs.inApp === false) return null;
+    return Notification.create({
+        userId: discussionAuthorId,
+        type: "reply",
+        message: `${replierName} replied to "${discussionTitle}"`,
+        link: `/forum/${discussionId}`
+    });
+}
+
+/**
+ * Notify the discussion author when their question is marked as solved.
+ */
+function notifySolved({ discussionAuthorId, solverName, discussionId, discussionTitle }) {
+    if (!discussionAuthorId) return null;
+    const prefs = Notification.getPrefs(discussionAuthorId);
+    if (prefs.inApp === false) return null;
+    return Notification.create({
+        userId: discussionAuthorId,
+        type: "solved",
+        message: `Your question "${discussionTitle}" was marked as solved by ${solverName}`,
+        link: `/forum/${discussionId}`
+    });
+}
+
 function listForUser(userId) {
     return Notification.listByUser(userId);
 }
 
-module.exports = { notifyMentions, listForUser };
+module.exports = { notifyMentions, notifyReply, notifySolved, listForUser };

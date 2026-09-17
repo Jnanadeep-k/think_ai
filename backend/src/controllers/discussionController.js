@@ -78,6 +78,14 @@ function setSolved(req, res) {
     if (!discussion) {
         return res.status(404).json({ success: false, message: "Discussion not found" });
     }
+    if (req.body.solved && discussion.authorId !== req.user.id) {
+        notificationService.notifySolved({
+            discussionAuthorId: discussion.authorId,
+            solverName: req.user.name || req.user.username,
+            discussionId: discussion.id,
+            discussionTitle: discussion.title
+        });
+    }
     res.status(200).json({ success: true, data: Discussion.serialize(discussion, req.user.id) });
 }
 

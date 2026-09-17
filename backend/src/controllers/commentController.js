@@ -40,17 +40,26 @@ function create(req, res) {
         authorId: req.user.id
     });
 
-    const created = notificationService.notifyMentions({
+    const mentionNotifications = notificationService.notifyMentions({
         text: body,
         authorId: req.user.id,
-        message: `${req.user.username} mentioned you in a comment on “${discussion.title}”`,
+        message: `${req.user.username} mentioned you in a comment on "${discussion.title}"`,
         link: `/forum/${discussion.id}`
     });
+
+    if (discussion.authorId !== req.user.id) {
+        notificationService.notifyReply({
+            discussionAuthorId: discussion.authorId,
+            replierName: req.user.name || req.user.username,
+            discussionId: discussion.id,
+            discussionTitle: discussion.title
+        });
+    }
 
     res.status(201).json({
         success: true,
         data: Comment.serialize(comment),
-        notificationsCreated: created.length
+        notificationsCreated: mentionNotifications.length
     });
 }
 
