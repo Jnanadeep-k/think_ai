@@ -15,6 +15,7 @@ function buildQueueItem(kind, item) {
                 : String(item.body).slice(0, 160),
         reason: item.flagReason,
         flaggedAt: item.updatedAt || item.createdAt,
+        reporterName: item.flagReporterName || "Anonymous user",
         hidden: Boolean(item.hidden),
         authorName: author ? author.name : "Unknown user",
         authorId: item.authorId

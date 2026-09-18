@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import "../../styles/forum.css";
 
 import DiscussionList from "../../components/forum/DiscussionList";
@@ -16,6 +16,8 @@ import { fetchCategories } from "../../services/categoryApi";
  * tag/category/solved filters and sorting.
  */
 export default function DiscussionListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const {
     items,
     setItems,
@@ -46,6 +48,31 @@ export default function DiscussionListPage() {
       cancelled = true;
     };
   }, []);
+
+  // URL is the single source of truth for search: seed `filters.search` from
+  // `?search=` once on mount, then keep the URL param in sync (no reload).
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (seededRef.current) return;
+    seededRef.current = true;
+    const urlSearch = searchParams.get("search") || "";
+    if (urlSearch && urlSearch !== (filters.search || "")) {
+      applyFilters({ ...filters, search: urlSearch });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!seededRef.current) return;
+    const nextParams = new URLSearchParams(searchParams);
+    const current = filters.search || "";
+    if (current) nextParams.set("search", current);
+    else nextParams.delete("search");
+    if (nextParams.toString() !== searchParams.toString()) {
+      setSearchParams(nextParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search]);
 
   const { vote, pendingIds } = useVoting();
   const { isBookmarked, toggleBookmark } = useBookmarks();

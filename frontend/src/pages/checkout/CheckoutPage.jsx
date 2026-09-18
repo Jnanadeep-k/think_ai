@@ -10,6 +10,7 @@ const STEPS = {
   REVIEW: 'review',
   PAYING: 'paying',
   SUCCESS: 'success',
+  FAILED: 'failed',
 };
 
 // Available mock coupons dictionary
@@ -53,6 +54,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(STEPS.REVIEW);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [receipt, setReceipt] = useState(null);
 
   // Coupon State
   const [couponCodeInput, setCouponCodeInput] = useState('');
@@ -141,6 +143,16 @@ export default function CheckoutPage() {
       });
 
       if (result.success) {
+        setReceipt({
+          orderId: order.orderId,
+          paymentId: mockPaymentId,
+          courseTitle: course.title,
+          courseId,
+          amount: grandTotal,
+          currency: '₹',
+          paidAt: new Date().toISOString(),
+          enrollmentId: result.enrollmentId,
+        });
         setStep(STEPS.SUCCESS);
 
         // Generate a reward coupon for future purchases
@@ -168,10 +180,20 @@ export default function CheckoutPage() {
       }
     } catch (err) {
       setError(err.message || 'Payment failed. Please try again.');
-      setStep(STEPS.REVIEW);
+      setStep(STEPS.FAILED);
+      dispatch(showToast({
+        title: 'Payment Failed',
+        message: err.message || 'Payment failed. Please try again.',
+        type: 'error'
+      }));
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    setStep(STEPS.REVIEW);
   };
 
   if (loading) {
