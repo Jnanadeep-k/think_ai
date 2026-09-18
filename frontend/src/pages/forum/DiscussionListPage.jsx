@@ -9,6 +9,7 @@ import TagFilter from "../../components/forum/TagFilter";
 import { useDiscussions } from "../../hooks/useDiscussions";
 import { useVoting } from "../../hooks/useVoting";
 import { useBookmarks } from "../../hooks/useBookmarks";
+import { useForumSocket } from "../../hooks/useForumSocket";
 import { fetchCategories } from "../../services/categoryApi";
 
 /**
@@ -76,6 +77,18 @@ export default function DiscussionListPage() {
 
   const { vote, pendingIds } = useVoting();
   const { isBookmarked, toggleBookmark } = useBookmarks();
+  const { subscribe } = useForumSocket();
+
+  // Live list: prepend threads published by anyone while this page is open.
+  useEffect(() => {
+    const unsubscribe = subscribe("discussion:new", (discussion) => {
+      setItems((previous) => {
+        if (previous.some((d) => d.id === discussion.id)) return previous;
+        return [discussion, ...previous];
+      });
+    });
+    return unsubscribe;
+  }, [subscribe, setItems]);
 
   const patchDiscussion = useCallback(
     (patch) => {
@@ -115,6 +128,7 @@ export default function DiscussionListPage() {
         <nav className="card-footer" style={{ marginBottom: 14 }} aria-label="Forum sections">
           <Link to="/forum/categories" className="tag-chip">📁 Categories</Link>
           <Link to="/forum/bookmarks" className="tag-chip">🔖 Bookmarks</Link>
+          <Link to="/forum/notifications" className="tag-chip">🔔 Notifications</Link>
           <Link to="/forum/studio" className="tag-chip">🎥 Live Studio</Link>
           <Link to="/forum/moderation" className="tag-chip">🛡 Moderation</Link>
           <Link to="/forum/preferences" className="tag-chip">🔔 Preferences</Link>
@@ -171,6 +185,8 @@ export default function DiscussionListPage() {
                   : "Be the first to start a conversation with the community."
               }
               searchTerm={filters.search || ""}
+              emptyActionLabel={hasActiveFilters ? "Clear filters" : "Start a discussion"}
+              onEmptyAction={hasActiveFilters ? () => applyFilters({}) : () => (window.location.href = "/forum/new")}
             />
             <PaginationControls page={meta.page} totalPages={meta.totalPages} onChange={setPage} />
             <p className="pagination__info" style={{ textAlign: "center", marginTop: 8 }}>

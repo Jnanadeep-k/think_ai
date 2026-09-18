@@ -67,12 +67,8 @@ export function saveNotificationPreferences(userId, prefs) {
   );
 }
 
-export function markAllNotificationsRead() {
-  return forumGet("/notifications", {}).then((payload) => {
-    const notifications = payload.data || [];
-    const unread = notifications.filter((n) => !n.read);
-    return Promise.all(
-      unread.map((n) => forumPatch(`/notifications/${n.id}/read`).then((p) => p.data))
-    );
-  });
+export function markAllNotificationsRead(userId) {
+  return forumPost("/notifications/read-all", userId ? { userId } : {}).then(
+    (payload) => payload.data
+  );
 }

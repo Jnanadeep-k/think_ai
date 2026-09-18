@@ -32,6 +32,7 @@ export default function CommentForm({ onSubmit, disabled = false }) {
       <div className="field">
         <label htmlFor="comment-body">Add a comment — use @username to mention someone</label>
         <RichTextEditor
+          id="comment-body"
           value={body}
           placeholder="Share your thoughts — use @username to mention someone"
           onChange={setBody}
