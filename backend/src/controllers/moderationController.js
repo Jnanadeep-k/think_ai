@@ -2,6 +2,23 @@ const Comment = require("../models/Comment");
 const Discussion = require("../models/Discussion");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const forumSocket = require("../websocket/forumSocket");
+const notificationService = require("../services/notificationService");
+const moderationPolicy = require("../services/forum/moderationPolicy");
+const moderatorService = require("../services/forum/moderatorService");
+
+/**
+ * Moderator action notifications follow the client-mandated precondition:
+ * moderator actions are routed to email only (config/notification-defaults.js).
+ */
+function notifyUser(userId, message) {
+    if (!userId) return;
+    notificationService.notifyModeratorAction({ userId, message, link: "/forum" });
+}
+
+function announceModeration(payload) {
+    forumSocket.pushModerationUpdate(payload);
+}
 
 function buildQueueItem(kind, item) {
     const author = User.findById(item.authorId);
@@ -15,6 +32,7 @@ function buildQueueItem(kind, item) {
                 : String(item.body).slice(0, 160),
         reason: item.flagReason,
         flaggedAt: item.updatedAt || item.createdAt,
+        reporterName: item.flagReporterName || "Anonymous user",
         hidden: Boolean(item.hidden),
         authorName: author ? author.name : "Unknown user",
         authorId: item.authorId
@@ -40,12 +58,8 @@ function banUser(req, res) {
     if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
     }
-    Notification.create({
-        userId: req.params.id,
-        type: "moderation",
-        message: "Your account has been banned by a moderator.",
-        link: "/forum"
-    });
+    notifyUser(req.params.id, "Your account has been banned by a moderator.");
+    announceModeration({ action: "ban", userId: user.id, banned: true });
     res.status(200).json({ success: true, data: user });
 }
 
@@ -54,12 +68,8 @@ function unbanUser(req, res) {
     if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
     }
-    Notification.create({
-        userId: req.params.id,
-        type: "moderation",
-        message: "Your account has been unbanned.",
-        link: "/forum"
-    });
+    notifyUser(req.params.id, "Your account has been unbanned.");
+    announceModeration({ action: "unban", userId: user.id, banned: false });
     res.status(200).json({ success: true, data: user });
 }
 
@@ -68,12 +78,9 @@ function warnUser(req, res) {
     if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
     }
-    Notification.create({
-        userId: req.params.id,
-        type: "moderation",
-        message: "You have received a warning from a moderator.",
-        link: "/forum"
-    });
+    User.logAuditAction({ type: "warn_user_policy", targetUserId: user.id, detail: "Community policy warning" });
+    notifyUser(req.params.id, "You have received a warning from a moderator.");
+    announceModeration({ action: "warn", userId: user.id, warned: true });
     res.status(200).json({ success: true, data: user });
 }
 
@@ -83,12 +90,8 @@ function muteUser(req, res) {
     if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
     }
-    Notification.create({
-        userId: req.params.id,
-        type: "moderation",
-        message: muted !== false ? "You have been muted." : "You have been unmuted.",
-        link: "/forum"
-    });
+    notifyUser(req.params.id, muted !== false ? "You have been muted." : "You have been unmuted.");
+    announceModeration({ action: muted !== false ? "mute" : "unmute", userId: user.id, muted: muted !== false });
     res.status(200).json({ success: true, data: user });
 }
 
@@ -108,6 +111,13 @@ function setContentVisibility(req, res) {
         return res.status(404).json({ success: false, message: `${type} not found` });
     }
     User.logAuditAction({ type: hidden ? "hide_content" : "show_content", targetContentId: id, contentType: type });
+    announceModeration({
+        action: hidden ? "hide" : "show",
+        contentType: type,
+        contentId: id,
+        hidden: Boolean(updated.hidden),
+        targetUserId: updated.authorId
+    });
     res.status(200).json({
         success: true,
         data: { id, type, hidden: Boolean(updated.hidden) }
@@ -122,7 +132,16 @@ function resolveContent(req, res) {
     if (!updated) {
         return res.status(404).json({ success: false, message: `${type} not found` });
     }
+    if (type === "discussion") Discussion.setHidden(id, false);
+    else Comment.setHidden(id, false);
     User.logAuditAction({ type: "resolve_flag", targetContentId: id, contentType: type });
+    announceModeration({
+        action: "dismiss",
+        contentType: type,
+        contentId: id,
+        resolved: true,
+        targetUserId: updated.authorId
+    });
     res.status(200).json({ success: true, data: { id, type, resolved: true } });
 }
 
@@ -138,4 +157,55 @@ function hiddenContent(_req, res) {
     res.status(200).json({ success: true, data: items });
 }
 
-module.exports = { flaggedQueue, hiddenContent, listUsers, banUser, unbanUser, warnUser, muteUser, setContentVisibility, resolveContent, getAuditLog };
+/**
+ * GET /moderation/policy — client moderation policy (thresholds, moderator
+ * role) consumed by the moderation dashboard and the handover playbook.
+ */
+function policy(_req, res) {
+    res.status(200).json({
+        success: true,
+        data: {
+            ...moderationPolicy.policySummary(),
+            moderatorRole: moderatorService.roleDefinition()
+        }
+    });
+}
+
+/** GET /moderation/roles — moderator role definition + assigned moderators. */
+function roles(_req, res) {
+    res.status(200).json({
+        success: true,
+        data: {
+            role: moderatorService.roleDefinition(),
+            moderators: moderatorService.listModerators(),
+            supportEmail: moderatorService.roleDefinition().supportEmail
+        }
+    });
+}
+
+/** GET /moderation/reports — raw report ledger for the review queue. */
+function reportLedger(_req, res) {
+    res.status(200).json({ success: true, data: dbReportsLedger() });
+}
+
+function dbReportsLedger() {
+    const db = require("../data/mockData");
+    return db.reports.map((report) => {
+        const content =
+            report.contentType === "discussion"
+                ? Discussion.findById(report.contentId)
+                : Comment.findById(report.contentId);
+        return {
+            id: report.id,
+            contentType: report.contentType,
+            contentId: report.contentId,
+            reason: report.reason,
+            createdAt: report.createdAt,
+            reporterName: report.reporterUserId ? (User.findById(report.reporterUserId) || {}).name : "Anonymous user",
+            authorId: content ? content.authorId : null,
+            excerpt: content ? String(content.body || "").slice(0, 120) : ""
+        };
+    });
+}
+
+module.exports = { flaggedQueue, hiddenContent, listUsers, banUser, unbanUser, warnUser, muteUser, setContentVisibility, resolveContent, getAuditLog, policy, roles, reportLedger };
