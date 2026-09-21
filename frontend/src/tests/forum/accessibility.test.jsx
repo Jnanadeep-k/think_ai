@@ -28,6 +28,10 @@ vi.mock("../../services/categoryApi", () => ({
   fetchCategories: vi.fn(),
 }));
 
+vi.mock("../../services/tagApi", () => ({
+  fetchTags: vi.fn().mockResolvedValue(["community", "ama", "onboarding"]),
+}));
+
 vi.mock("../../services/bookmarkApi", () => ({
   fetchBookmarks: vi.fn(),
   addBookmark: vi.fn().mockResolvedValue({}),

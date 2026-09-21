@@ -20,6 +20,7 @@ const FORUM_SERVICES = [
     "bookmarkApi.js",
     "moderationApi.js",
     "studioApi.js",
+    "tagApi.js",
     "websocket.js",
     "forumSocketClient.js"
 ];

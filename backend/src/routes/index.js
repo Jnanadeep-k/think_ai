@@ -25,6 +25,8 @@ router.use("/categories", require("./categoryRoutes"));
 router.use("/bookmarks", require("./bookmarkRoutes"));
 router.use("/notifications", require("./notificationRoutes"));
 router.use("/moderation", require("./moderationRoutes"));
+router.use("/tags", require("./tagRoutes"));
+router.use("/v1/payments", require("./paymentRoutes"));
 router.use("/live-studio", require("./studioRoutes"));
 
 // Router-scoped 404 + error handling (does not affect other modules).

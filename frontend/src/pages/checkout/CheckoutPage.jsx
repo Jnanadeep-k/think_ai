@@ -3,8 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import { getCourseById } from '../../api/courseApi';
-import { createOrder, verifyPayment, resolvePaymentInstrument, PAYMENT_TEST_INSTRUMENTS, FALLBACK_CARD } from '../../api/checkoutApi';
+import { createOrder, verifyPayment, resolvePaymentInstrument, PAYMENT_TEST_INSTRUMENTS, FALLBACK_CARD, validateDiscount } from '../../api/checkoutApi';
 import { showToast, notificationReceived } from '../../features/preferenceNotification/preferenceNotificationSlice';
+import {
+  COST_CENTER_PATTERN,
+  CLIENT_SUPPORT_EMAIL,
+  CLIENT_REFUND_POLICY,
+  CLIENT_DEPARTMENTS,
+} from '../../schemas/checkout.schema';
 import '../../styles/checkout.css';
 
 const STEPS = {
@@ -14,11 +20,13 @@ const STEPS = {
   FAILED: 'failed',
 };
 
-// Available mock coupons dictionary
-const AVAILABLE_COUPONS = {
-  'THINKZ10': { discountPercent: 10, description: '10% off your order' },
-  'SAVE20': { discountPercent: 20, description: '20% off your order' },
-};
+function normalizeCostCenter(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function isFixedType(type) {
+  return type === 'fixed';
+}
 
 function CreditCardIcon() {
   return (
@@ -62,6 +70,13 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
   const [generatedRewardCoupon, setGeneratedRewardCoupon] = useState('');
+  const [validatingDiscount, setValidatingDiscount] = useState(false);
+
+  // Client checkout fields: cost center (mandatory, "XX-0000") + department
+  // (used to check the commission table's eligibleDepartments).
+  const [costCenter, setCostCenter] = useState('');
+  const [costCenterError, setCostCenterError] = useState('');
+  const [department, setDepartment] = useState(CLIENT_DEPARTMENTS[0]);
 
   // UI State
   const [selectedMethod, setSelectedMethod] = useState('upi');
@@ -109,31 +124,68 @@ export default function CheckoutPage() {
   // Derived Pricing Calculations with Coupon Support
   const coursePrice = typeof course?.price === 'number' ? course.price : 0;
 
-  let discountAmount = 0;
-  if (appliedCoupon) {
-    discountAmount = (coursePrice * appliedCoupon.discountPercent) / 100;
-  }
+  // The discount amount is supplied by the server-side validation so fixed and
+  // percent codes stay consistent with the commission table.
+  const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
 
   const discountedPrice = Math.max(0, coursePrice - discountAmount);
   const shippingFee = 0;
   const tax = discountedPrice * 0.18; // 18% tax on discounted total
   const grandTotal = (discountedPrice + shippingFee + tax).toFixed(2);
 
-  // Handle Coupon Application
-  const handleApplyCoupon = (e) => {
+  const handleCostCenterChange = (value) => {
+    setCostCenter(value);
+    if (!value) {
+      setCostCenterError('');
+      return;
+    }
+    setCostCenterError(COST_CENTER_PATTERN.test(normalizeCostCenter(value)) ? '' : 'Format: XX-0000');
+  };
+
+  // Handle Coupon Application (server-validated against the client commission)
+  const handleApplyCoupon = async (e) => {
     e.preventDefault();
     setCouponError('');
     const code = couponCodeInput.trim().toUpperCase();
 
     if (!code) return;
 
-    if (AVAILABLE_COUPONS[code]) {
-      setAppliedCoupon({ code, ...AVAILABLE_COUPONS[code] });
-      toast.success(`Coupon ${code} applied successfully!`, { theme: 'dark' });
-      setCouponCodeInput('');
-    } else {
-      setCouponError('Invalid coupon code. Try THINKZ10 or SAVE20');
+    const center = normalizeCostCenter(costCenter);
+    if (!center || !COST_CENTER_PATTERN.test(center)) {
+      setCostCenterError('Format: XX-0000');
+      setCouponError('Enter a valid cost center (Format: XX-0000) before applying a discount.');
+      return;
     }
+
+    setValidatingDiscount(true);
+    try {
+      const payload = await validateDiscount({ code, costCenter: center, department, amount: coursePrice });
+      const data = payload.data;
+      if (!data.valid) {
+        setCouponError(data.message || 'Invalid coupon code.');
+        return;
+      }
+      setAppliedCoupon({
+        code,
+        discountType: data.discount.type,
+        discountValue: data.discount.value,
+        discountAmount: data.discountAmount,
+        message: data.message,
+        costCenter: center,
+      });
+      setCostCenterError('');
+      setCouponCodeInput('');
+      toast.success(`${code} applied (${data.discount.type === 'fixed' ? '₹' : ''}${formatDiscountLabel(data)} off)`, { theme: 'dark' });
+    } catch (err) {
+      setCouponError(err.message || 'Invalid coupon code.');
+    } finally {
+      setValidatingDiscount(false);
+    }
+  };
+
+  const formatDiscountLabel = (data) => {
+    if (data.discount.type === 'fixed') return String(data.discount.value).toFixed(2);
+    return `${data.discount.value}%`;
   };
 
   const handleRemoveCoupon = () => {
@@ -143,11 +195,20 @@ export default function CheckoutPage() {
 
   const handlePay = async () => {
     setError(null);
+
+    // Cost center is mandatory at checkout (client requirement, "XX-0000").
+    const center = normalizeCostCenter(costCenter);
+    if (!center || !COST_CENTER_PATTERN.test(center)) {
+      setCostCenterError('Format: XX-0000');
+      setError('Cost center is required to complete this order (Format: XX-0000).');
+      return;
+    }
+
     setProcessing(true);
     setStep(STEPS.PAYING);
 
     try {
-      const order = await createOrder({ courseId, amount: parseFloat(grandTotal) });
+      const order = await createOrder({ courseId, amount: parseFloat(grandTotal), costCenter: center, department, discountCode: appliedCoupon ? appliedCoupon.code : null });
 
       const mockPaymentId = `pay_mock_${Date.now()}`;
       const mockSignature = 'mock_signature';
@@ -169,6 +230,9 @@ export default function CheckoutPage() {
           currency: '₹',
           paidAt: new Date().toISOString(),
           enrollmentId: result.enrollmentId,
+          costCenter: center,
+          discountCode: appliedCoupon ? appliedCoupon.code : '',
+          discountLabel: appliedCoupon ? appliedCoupon.discountAmount : 0,
         });
         setStep(STEPS.SUCCESS);
 
@@ -287,6 +351,16 @@ export default function CheckoutPage() {
                 <span className="font-mono text-slate-900 dark:text-white">{receipt.paymentId}</span>
               </div>
               <div className="flex justify-between text-xs">
+                <span className="text-slate-500 dark:text-slate-400">Cost Center</span>
+                <span className="font-mono text-slate-900 dark:text-white">{receipt.costCenter}</span>
+              </div>
+              {receipt.discountCode && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Discount code</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">{receipt.discountCode} (-₹{Number(receipt.discountLabel).toFixed(2)})</span>
+                </div>
+              )}
+              <div className="flex justify-between text-xs">
                 <span className="text-slate-500 dark:text-slate-400">Enrollment</span>
                 <span className="font-mono text-slate-900 dark:text-white">{receipt.enrollmentId}</span>
               </div>
@@ -301,6 +375,15 @@ export default function CheckoutPage() {
                 <span className="text-slate-900 dark:text-white">
                   {new Date(receipt.paidAt).toLocaleString()}
                 </span>
+              </div>
+              <div className="pt-2 border-t border-slate-200 dark:border-[#323846]">
+                <p className="text-[10.5px] leading-relaxed text-slate-500 dark:text-[#94a3b8]">
+                  <strong className="text-slate-700 dark:text-slate-300">Refund policy:</strong> {CLIENT_REFUND_POLICY}
+                </p>
+                <p className="text-[10.5px] text-slate-400 dark:text-slate-500 mt-1.5">
+                  Questions about this receipt or your refund eligibility? Contact{' '}
+                  <a href={`mailto:${CLIENT_SUPPORT_EMAIL}`} className="text-purple-600 dark:text-purple-400 underline">{CLIENT_SUPPORT_EMAIL}</a>.
+                </p>
               </div>
             </div>
           )}
@@ -434,6 +517,26 @@ export default function CheckoutPage() {
                 <span className="h-2 w-2 rounded-full bg-emerald-500 mt-1.5 shrink-0 shadow-[0_0_8px_#10b981]" />
               </div>
             )}
+
+            {/* Client-mandated cost center (Format: XX-0000) */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-[#94a3b8]">
+                Cost Center <span className="text-red-500">*</span>
+                <span className="font-normal text-slate-400 dark:text-slate-500"> — Format: XX-0000 (e.g. HR-2501)</span>
+              </label>
+              <input
+                type="text"
+                value={costCenter}
+                onChange={(e) => handleCostCenterChange(e.target.value)}
+                placeholder="XX-0000"
+                aria-label="Cost center"
+                aria-invalid={Boolean(costCenterError)}
+                className={`w-full bg-white dark:bg-[#1a1e2b] border rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-purple-500 font-mono tracking-widest uppercase ${costCenterError ? 'border-red-500' : 'border-slate-300 dark:border-[#3e4658]'}`}
+              />
+              {costCenterError && (
+                <p className="text-[11px] text-red-400" role="alert">{costCenterError}</p>
+              )}
+            </div>
           </div>
 
           {/* Step 2: Payment Methods */}
@@ -549,19 +652,34 @@ export default function CheckoutPage() {
 
             {/* Coupon Section */}
             <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-[#94a3b8]">
+                Department <span className="font-normal text-slate-400 dark:text-slate-500">— some codes are department-specific</span>
+              </label>
+              <select
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                aria-label="Department"
+                className="w-full bg-white dark:bg-[#1a1e2b] border border-slate-300 dark:border-[#3e4658] rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-purple-500"
+              >
+                {CLIENT_DEPARTMENTS.map((dept) => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+
               <form onSubmit={handleApplyCoupon} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Coupon Code (e.g. THINKZ10)"
+                  placeholder="Discount code"
                   value={couponCodeInput}
                   onChange={(e) => setCouponCodeInput(e.target.value)}
                   className="flex-1 bg-white dark:bg-[#1a1e2b] border border-slate-300 dark:border-[#3e4658] rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white uppercase outline-none focus:border-purple-500"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-md"
+                  disabled={validatingDiscount}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-md disabled:opacity-60"
                 >
-                  Apply
+                  {validatingDiscount ? 'Checking…' : 'Apply'}
                 </button>
               </form>
 
@@ -569,8 +687,11 @@ export default function CheckoutPage() {
 
               {appliedCoupon && (
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-300">
-                  <span>Coupon <strong>{appliedCoupon.code}</strong> applied ({appliedCoupon.discountPercent}% off)</span>
-                  <button onClick={handleRemoveCoupon} className="hover:text-slate-900 dark:hover:text-white font-bold cursor-pointer">×</button>
+                  <span>
+                    Coupon <strong>{appliedCoupon.code}</strong> applied (
+                    {appliedCoupon.discountType === 'fixed' ? `₹${Number(appliedCoupon.discountValue).toFixed(2)} off` : `${appliedCoupon.discountValue}% off`})
+                  </span>
+                  <button onClick={handleRemoveCoupon} aria-label="Remove coupon" className="hover:text-slate-900 dark:hover:text-white font-bold cursor-pointer">×</button>
                 </div>
               )}
             </div>
@@ -583,7 +704,7 @@ export default function CheckoutPage() {
 
               {appliedCoupon && (
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
-                  <span>Discount ({appliedCoupon.discountPercent}%)</span>
+                  <span>Discount ({appliedCoupon.discountType === 'fixed' ? `₹${Number(appliedCoupon.discountValue).toFixed(2)}` : `${appliedCoupon.discountValue}%`})</span>
                   <span className="font-mono">-₹{discountAmount.toFixed(2)}</span>
                 </div>
               )}

@@ -13,6 +13,56 @@ const BASE = "/api/checkout";
 const USE_MOCK = true;
 
 /**
+ * Discount-code validation is a client customization that speaks to the Forum
+ * module's payments endpoint (POST /api/v1/payments/validate-discount) which
+ * enforces the cost-center format (XX-0000) and the commission table rules
+ * (expiry / maxUses / eligibleDepartments).
+ */
+const PAYMENTS_API_BASE_URL =
+  import.meta.env.VITE_FORUM_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:5000/api";
+
+/**
+ * Validates a discount code at checkout against the client commission table.
+ * Resolves with the API payload when the server returns 2xx; otherwise throws
+ * an Error carrying the status and server message.
+ *
+ * @param {{ code: string, costCenter: string, department?: string, amount?: number }} params
+ */
+export async function validateDiscount({ code, costCenter, department, amount }) {
+  const token = localStorage.getItem("token");
+  let res;
+  try {
+    res = await fetch(`${PAYMENTS_API_BASE_URL}/v1/payments/validate-discount`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ code, costCenter, department, amount }),
+    });
+  } catch {
+    throw new Error("Network error — discount validation is unavailable right now.");
+  }
+
+  let payload = null;
+  try {
+    payload = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const error = new Error((payload && payload.message) || "Discount validation failed.");
+    error.status = res.status;
+    error.payload = payload;
+    throw error;
+  }
+  return payload;
+}
+
+/**
  * Test payment instruments used by the demo/staging checkout. Each entry maps
  * to a deterministic simulated outcome so the UI can be rehearsed end-to-end.
  */

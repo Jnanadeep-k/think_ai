@@ -11,6 +11,7 @@ import { useVoting } from "../../hooks/useVoting";
 import { useBookmarks } from "../../hooks/useBookmarks";
 import { useForumSocket } from "../../hooks/useForumSocket";
 import { fetchCategories } from "../../services/categoryApi";
+import { fetchTags } from "../../services/tagApi";
 
 /**
  * Forum home (Phase 1/2/9): paginated list with server-side search,
@@ -31,10 +32,7 @@ export default function DiscussionListPage() {
   } = useDiscussions({});
 
   const [categories, setCategories] = useState([]);
-  const [popularTags] = useState([
-    "react", "nodejs", "javascript", "css", "api",
-    "database", "testing", "career", "ai", "devtools",
-  ]);
+  const [popularTags, setPopularTags] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +42,13 @@ export default function DiscussionListPage() {
       })
       .catch(() => {
         /* filter dropdown simply stays empty */
+      });
+    fetchTags()
+      .then((data) => {
+        if (!cancelled) setPopularTags(data.map((tag) => tag.name));
+      })
+      .catch(() => {
+        /* tag filter stays empty if taxonomy endpoint is unreachable */
       });
     return () => {
       cancelled = true;

@@ -3,16 +3,17 @@ const Discussion = require("../models/Discussion");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const forumSocket = require("../websocket/forumSocket");
+const notificationService = require("../services/notificationService");
+const moderationPolicy = require("../services/forum/moderationPolicy");
+const moderatorService = require("../services/forum/moderatorService");
 
+/**
+ * Moderator action notifications follow the client-mandated precondition:
+ * moderator actions are routed to email only (config/notification-defaults.js).
+ */
 function notifyUser(userId, message) {
     if (!userId) return;
-    const notification = Notification.create({
-        userId,
-        type: "moderation",
-        message,
-        link: "/forum"
-    });
-    forumSocket.pushNotification(notification);
+    notificationService.notifyModeratorAction({ userId, message, link: "/forum" });
 }
 
 function announceModeration(payload) {
@@ -77,6 +78,7 @@ function warnUser(req, res) {
     if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
     }
+    User.logAuditAction({ type: "warn_user_policy", targetUserId: user.id, detail: "Community policy warning" });
     notifyUser(req.params.id, "You have received a warning from a moderator.");
     announceModeration({ action: "warn", userId: user.id, warned: true });
     res.status(200).json({ success: true, data: user });
@@ -130,6 +132,8 @@ function resolveContent(req, res) {
     if (!updated) {
         return res.status(404).json({ success: false, message: `${type} not found` });
     }
+    if (type === "discussion") Discussion.setHidden(id, false);
+    else Comment.setHidden(id, false);
     User.logAuditAction({ type: "resolve_flag", targetContentId: id, contentType: type });
     announceModeration({
         action: "dismiss",
@@ -153,4 +157,55 @@ function hiddenContent(_req, res) {
     res.status(200).json({ success: true, data: items });
 }
 
-module.exports = { flaggedQueue, hiddenContent, listUsers, banUser, unbanUser, warnUser, muteUser, setContentVisibility, resolveContent, getAuditLog };
+/**
+ * GET /moderation/policy — client moderation policy (thresholds, moderator
+ * role) consumed by the moderation dashboard and the handover playbook.
+ */
+function policy(_req, res) {
+    res.status(200).json({
+        success: true,
+        data: {
+            ...moderationPolicy.policySummary(),
+            moderatorRole: moderatorService.roleDefinition()
+        }
+    });
+}
+
+/** GET /moderation/roles — moderator role definition + assigned moderators. */
+function roles(_req, res) {
+    res.status(200).json({
+        success: true,
+        data: {
+            role: moderatorService.roleDefinition(),
+            moderators: moderatorService.listModerators(),
+            supportEmail: moderatorService.roleDefinition().supportEmail
+        }
+    });
+}
+
+/** GET /moderation/reports — raw report ledger for the review queue. */
+function reportLedger(_req, res) {
+    res.status(200).json({ success: true, data: dbReportsLedger() });
+}
+
+function dbReportsLedger() {
+    const db = require("../data/mockData");
+    return db.reports.map((report) => {
+        const content =
+            report.contentType === "discussion"
+                ? Discussion.findById(report.contentId)
+                : Comment.findById(report.contentId);
+        return {
+            id: report.id,
+            contentType: report.contentType,
+            contentId: report.contentId,
+            reason: report.reason,
+            createdAt: report.createdAt,
+            reporterName: report.reporterUserId ? (User.findById(report.reporterUserId) || {}).name : "Anonymous user",
+            authorId: content ? content.authorId : null,
+            excerpt: content ? String(content.body || "").slice(0, 120) : ""
+        };
+    });
+}
+
+module.exports = { flaggedQueue, hiddenContent, listUsers, banUser, unbanUser, warnUser, muteUser, setContentVisibility, resolveContent, getAuditLog, policy, roles, reportLedger };

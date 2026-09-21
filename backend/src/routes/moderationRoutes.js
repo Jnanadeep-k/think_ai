@@ -7,6 +7,9 @@ const User = require("../models/User");
 
 router.get("/flagged", moderationController.flaggedQueue);
 router.get("/hidden", moderationController.hiddenContent);
+router.get("/policy", moderationController.policy);
+router.get("/roles", moderationController.roles);
+router.get("/reports", moderationController.reportLedger);
 router.get("/users", moderationController.listUsers);
 router.get("/users/search", (req, res) => {
     const q = String(req.query.q || "").toLowerCase();
