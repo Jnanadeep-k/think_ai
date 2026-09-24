@@ -222,11 +222,28 @@ export default function LiveStudioPage() {
     <div className="studio-page">
       <div className="studio-container">
         <header className="studio-header">
-          <h1>{session?.title || "Live Class Studio"}</h1>
-          <span className="live-pill">● LIVE</span>
-          <span className="mode-pill">socket: {mode}</span>
-          <span style={{ flex: 1 }} />
-          <Link to="/forum" className="btn btn--ghost btn--small">← Forum</Link>
+          <div className="studio-header__side studio-header__side--left">
+            <Link to="/forum" className="studio-back-link" title="Back to Community Forum">
+              <span className="studio-back-link__icon" aria-hidden="true">‹</span>
+              Forum
+            </Link>
+          </div>
+          <div className="studio-header__meta">
+            <h1>{session?.title || "Live Class Studio"}</h1>
+            <div className="studio-header__meta-row">
+              <span className="live-pill">● LIVE</span>
+              <span className="studio-header__count">
+                {attendees.length}{" "}
+                {attendees.length === 1 ? "participant" : "participants"} · {onlineCount} online
+              </span>
+              <span className="mode-pill">socket: {mode}</span>
+            </div>
+          </div>
+          <div className="studio-header__side studio-header__side--right">
+            <Link to="/forum" className="studio-leave-btn" title="Leave the live studio">
+              Leave call
+            </Link>
+          </div>
         </header>
 
         {/* Main live class workspace stays compact. */}
@@ -235,7 +252,10 @@ export default function LiveStudioPage() {
             <VideoPlaceholder
               title={session?.title || "Waiting for session…"}
               isSharing={sharing}
-              attendeeCount={onlineCount}
+              attendees={attendees}
+              currentUserId={user.id}
+              hostId={session?.hostId}
+              cameraActive={cameraOn}
               onOpenCamera={() => handleOpenPanel(ACTIVE_PANELS.CAMERA)}
             />
           </div>
@@ -327,6 +347,7 @@ export default function LiveStudioPage() {
           onOpenAttendees={() => handleTogglePanel(ACTIVE_PANELS.ATTENDEES)}
           onOpenPolls={() => handleTogglePanel(ACTIVE_PANELS.POLLS)}
           onOpenBreakout={() => handleTogglePanel(ACTIVE_PANELS.BREAKOUT)}
+          onLeaveCall={() => window.location.assign("/forum")}
         />
       </div>
 
