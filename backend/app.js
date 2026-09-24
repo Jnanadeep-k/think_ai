@@ -182,7 +182,7 @@ app.get("/api/health", (req, res) => {
 // ============================================================
 
 app.use("/api/auth", authRoutes);
-
+app.use("/api/sessions", sessionRoutes);
 app.use("/api/admin", adminUsersRoutes);
 
 app.use("/api/admin", adminCodingQuestionRoutes);
