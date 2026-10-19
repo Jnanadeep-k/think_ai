@@ -1,0 +1,22 @@
+name: AWS Authentication Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::661609780373:role/ThinkzAI-GitHub-ECR-Push
+          aws-region: ap-south-2
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
