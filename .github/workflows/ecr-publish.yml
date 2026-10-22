@@ -10,6 +10,7 @@ permissions:
 jobs:
   check-identity:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check OIDC identity
         uses: actions/github-script@v7
@@ -19,8 +20,18 @@ jobs:
             const claims = JSON.parse(
               Buffer.from(token.split('.')[1], 'base64url').toString()
             );
+
             core.info(JSON.stringify({
               sub: claims.sub,
               aud: claims.aud,
               ref: claims.ref
             }, null, 2));
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::661609780373:role/ThinkzAI-GitHub-ECR-Push
+          aws-region: ap-south-2
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
