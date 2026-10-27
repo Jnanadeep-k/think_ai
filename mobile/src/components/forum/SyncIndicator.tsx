@@ -18,8 +18,16 @@ export function SyncIndicator({
 }: SyncIndicatorProps) {
   return (
     <View style={styles.chip} testID={testID}>
-      <Text style={styles.icon}>{isSyncing ? '⟳' : '↻'}</Text>
-      <Text style={styles.label} testID={`${testID}-label`}>
+      <Text
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={styles.icon}>
+        {isSyncing ? '⟳' : '↻'}
+      </Text>
+      <Text
+        accessibilityLiveRegion="polite"
+        style={styles.label}
+        testID={`${testID}-label`}>
         {isSyncing
           ? 'Syncing…'
           : syncedAt

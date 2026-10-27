@@ -137,7 +137,9 @@ describe('CourseDetailScreen', () => {
     await act(async () => {
       jest.advanceTimersByTime(400);
     });
-    expect(screen.getByTestId('enroll-button-label')).toHaveTextContent('Enroll now');
+    expect(screen.getByTestId('enroll-button-label')).toHaveTextContent('Enrolled');
+    expect(screen.getByTestId('enrollment-confirmed')).toBeTruthy();
+    expect(screen.getByTestId('play-video')).toBeTruthy();
   });
 
   it('auto-expands the module supplied by a deep link', async () => {

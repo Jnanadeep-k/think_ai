@@ -345,3 +345,51 @@ export interface PaymentConfirmation {
   message?: string;
   failureCode?: string;
 }
+
+export type PaymentStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'succeeded'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+/** Receipt payload rendered by the success screen. */
+export interface PaymentDetails {
+  id: string;
+  planName: string;
+  amount: number;
+  currency: string;
+  transactionId: string;
+  paidAt: string;
+  courseId: string;
+  courseTitle?: string;
+  receiptEmail?: string;
+  failureReason?: string;
+}
+
+/** `GET /api/payments/:id/status` response. */
+export interface PaymentStatusResponse {
+  status: PaymentStatus;
+  payment?: PaymentDetails;
+  failureCode?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Notification preferences (settings screen)
+// ---------------------------------------------------------------------------
+
+export type NotificationEventGroup =
+  | 'replies'
+  | 'mentions'
+  | 'sessions'
+  | 'payments';
+
+export type NotificationChannel = 'email' | 'inApp' | 'sms';
+
+export type NotificationGroupPrefs = Record<NotificationChannel, boolean>;
+
+export type NotificationPreferences = Record<
+  NotificationEventGroup,
+  NotificationGroupPrefs
+>;

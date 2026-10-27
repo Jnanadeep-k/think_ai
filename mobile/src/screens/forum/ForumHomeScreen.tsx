@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ScreenHeader } from '@/components/common';
+import { OfflineBanner, ScreenHeader } from '@/components/common';
 import { CategoryChips } from '@/components/forum/CategoryChips';
 import { CreatePostModal } from '@/components/forum/CreatePostModal';
 import { FloatingActionButton } from '@/components/forum/FloatingActionButton';
@@ -30,6 +30,8 @@ export function ForumHomeScreen({ navigation }: ScreenProps<'ForumHome'>) {
     hasError,
     error,
     isEmpty,
+    isOffline,
+    isFromCache,
     threshold,
     total,
     setCategoryId,
@@ -68,6 +70,11 @@ export function ForumHomeScreen({ navigation }: ScreenProps<'ForumHome'>) {
         }
         subtitle={`${total} thread${total === 1 ? '' : 's'} in the community`}
         title="Forum"
+      />
+
+      <OfflineBanner
+        message="You are offline — showing saved threads."
+        visible={isOffline || isFromCache}
       />
 
       <CategoryChips

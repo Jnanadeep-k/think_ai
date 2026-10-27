@@ -10,6 +10,7 @@ export interface MockNavigation {
   navigate: jest.Mock;
   goBack: jest.Mock;
   push: jest.Mock;
+  replace: jest.Mock;
   setOptions: jest.Mock;
   addListener: jest.Mock;
   isFocused: jest.Mock;
@@ -22,6 +23,7 @@ export function createMockNavigation(): MockNavigation {
     navigate: jest.fn(),
     goBack: jest.fn(),
     push: jest.fn(),
+    replace: jest.fn(),
     setOptions: jest.fn(),
     addListener: jest.fn(() => jest.fn()),
     isFocused: jest.fn(() => true),

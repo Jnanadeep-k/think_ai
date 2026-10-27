@@ -12,6 +12,7 @@ const discountService = require("../services/payments/discountService");
 const receiptService = require("../services/payments/receiptService");
 const paymentWebhookService = require("../services/payments/paymentWebhookService");
 const paymentConfirmationService = require("../services/payments/paymentConfirmationService");
+const paymentStatusStore = require("../services/payments/paymentStatusStore");
 
 // ---------------------------------------------------------------------------
 // Payment webhooks (Stripe / Razorpay) + confirmation retry
@@ -93,6 +94,11 @@ async function confirmPayment(req, res) {
             instrument
         });
 
+        paymentStatusStore.recordConfirmation(
+            { orderId, courseId, courseTitle: req.body.courseTitle, amount, currency, email },
+            result
+        );
+
         if (!result.success) {
             return res.status(402).json({ success: false, message: result.message, data: result });
         }
@@ -101,6 +107,18 @@ async function confirmPayment(req, res) {
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
     }
+}
+
+/**
+ * GET /api/v1/payments/:id/status — status projection polled by the RN
+ * success screen. Accepts either the order id or the confirmation id.
+ */
+function getPaymentStatus(req, res) {
+    const record = paymentStatusStore.getStatus(req.params.id);
+    if (!record) {
+        return res.status(404).json({ success: false, message: "Payment not found" });
+    }
+    return res.status(200).json({ success: true, data: record });
 }
 
 function validateDiscount(req, res) {
@@ -197,6 +215,7 @@ exports.handleWebhook = async (req, res, next) => {
 module.exports = {
     validateDiscount,
     generateReceipt,
+    getPaymentStatus,
     handleStripeWebhook,
     handleRazorpayWebhook,
     confirmPayment,

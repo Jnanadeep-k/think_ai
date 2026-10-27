@@ -51,7 +51,7 @@ describe('Page 6 — thread detail', () => {
 
     expect(result).toEqual(thread);
     const [url, init] = lastCall();
-    expect(url).toBe(`${API_BASE_URL}/discussions/t-1`);
+    expect(url).toBe(`${API_BASE_URL}/forum/threads/t-1`);
     expect(init.method).toBe('GET');
     expect((init.headers as Record<string, string>)['x-user-id']).toBe('u1');
   });
@@ -65,10 +65,9 @@ describe('Page 6 — thread detail', () => {
     const result = await client.submitReply('t-1', { body: 'Hello @prema' });
 
     const [url, init] = lastCall();
-    expect(url).toBe(`${API_BASE_URL}/comments`);
+    expect(url).toBe(`${API_BASE_URL}/forum/threads/t-1/replies`);
     expect(init.method).toBe('POST');
     expect(parsedBody(init)).toEqual({
-      discussionId: 't-1',
       body: 'Hello @prema',
       parentId: null,
     });
@@ -99,7 +98,7 @@ describe('Page 6 — thread detail', () => {
     const result = await client.setThreadSolved('t-1', true);
 
     const [url, init] = lastCall();
-    expect(url).toBe(`${API_BASE_URL}/discussions/t-1/solved`);
+    expect(url).toBe(`${API_BASE_URL}/forum/threads/t-1/solved`);
     expect(init.method).toBe('PATCH');
     expect(parsedBody(init)).toEqual({ solved: true });
     expect(result.solved).toBe(true);
@@ -114,7 +113,7 @@ describe('Page 6 — thread detail', () => {
     await client.searchMentionUsers('prem');
 
     expect(lastCall()[0]).toBe(
-      `${API_BASE_URL}/moderation/users/search?q=prem`
+      `${API_BASE_URL}/users/search?q=prem`
     );
   });
 
@@ -202,25 +201,28 @@ describe('Page 8 — bookmarks', () => {
 });
 
 describe('Page 9 — moderation', () => {
-  it('soft delete is a hide + resolve composite in order', async () => {
-    fetchMock
-      .mockResolvedValueOnce(respond(envelope({ id: 't-9', type: 'discussion', hidden: true })))
-      .mockResolvedValueOnce(
-        respond(envelope({ id: 't-9', type: 'discussion', resolved: true }))
-      );
+  it('soft delete is one server-side hide + resolve action', async () => {
+    fetchMock.mockResolvedValueOnce(
+      respond(
+        envelope({
+          id: 't-9',
+          type: 'discussion',
+          hidden: true,
+          resolved: true,
+          deleted: true,
+        })
+      )
+    );
 
     const client = createCommunityClient();
     const result = await client.deleteManagedContent({ id: 't-9', type: 'discussion' });
 
-    const [firstUrl, firstInit] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const [secondUrl, secondInit] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(firstUrl).toBe(`${API_BASE_URL}/moderation/content/t-9`);
-    expect(firstInit.method).toBe('PATCH');
-    expect(parsedBody(firstInit)).toEqual({ type: 'discussion', hidden: true });
-    expect(secondUrl).toBe(`${API_BASE_URL}/moderation/content/t-9/resolve`);
-    expect(secondInit.method).toBe('POST');
+    const [url, init] = lastCall();
+    expect(url).toBe(`${API_BASE_URL}/forum/posts/t-9/action`);
+    expect(init.method).toBe('PATCH');
+    expect(parsedBody(init)).toEqual({ type: 'discussion', action: 'delete' });
     expect(result).toMatchObject({ hidden: true, deleted: true, resolved: true });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('loads the user posts with author query and slices excerpts', async () => {

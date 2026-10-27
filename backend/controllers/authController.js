@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 // ==========================================
 exports.register = async (req, res) => {
     try {
-        const { email, password, name, role } = req.body;
+        const { email, password, name } = req.body;
 
         // Basic validation
         if (!email || !password) {
@@ -39,7 +39,7 @@ exports.register = async (req, res) => {
                 email,
                 password: hashedPassword,
                 name: name || email.split('@')[0], // Fallback if name is empty
-                role: role || 'Learner'            // Default role matching RBAC core requirements
+                role: 'Learner'
             }
         });
 
@@ -50,7 +50,7 @@ exports.register = async (req, res) => {
                 email: newUser.email,
                 role: newUser.role,
             },
-            process.env.ACCESS_TOKEN_SECRET,
+            process.env.JWT_SECRET || 'fallback_secret',
             { expiresIn: '7d' }
         );
 
@@ -124,7 +124,7 @@ exports.login = async (req, res) => {
                 email: user.email,
                 role: user.role
             },
-            process.env.ACCESS_TOKEN_SECRET,
+            process.env.JWT_SECRET || 'fallback_secret',
             { expiresIn: '7d' }
         );
 

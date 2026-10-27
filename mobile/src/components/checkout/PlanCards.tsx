@@ -24,6 +24,7 @@ export function PlanCards({
         const isSelected = plan.id === selectedId;
         return (
           <Pressable
+            accessibilityLabel={`${plan.title}, ${formatINR(plan.price)}`}
             accessibilityRole="radio"
             accessibilityState={{ selected: isSelected }}
             key={plan.id}

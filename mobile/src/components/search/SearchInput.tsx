@@ -33,7 +33,12 @@ export function SearchInput({
 
   return (
     <View style={styles.container} testID={testID}>
-      <Text style={styles.leadingIcon}>🔍</Text>
+      <Text
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={styles.leadingIcon}>
+        🔍
+      </Text>
       <TextInput
         accessibilityLabel={placeholder}
         autoCapitalize="none"
@@ -59,7 +64,11 @@ export function SearchInput({
         </Pressable>
       ) : null}
       {isBusy ? (
-        <Text style={styles.busy} testID={`${testID}-busy`}>
+        <Text
+          accessibilityLabel="Searching"
+          accessibilityLiveRegion="polite"
+          style={styles.busy}
+          testID={`${testID}-busy`}>
           …
         </Text>
       ) : null}

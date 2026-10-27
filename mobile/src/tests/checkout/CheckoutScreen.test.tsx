@@ -393,6 +393,46 @@ describe('CheckoutScreen — payment', () => {
     expect(screen.getByTestId('checkout-pay')).toBeTruthy();
   });
 
+  it('navigates to the failure screen with non-sensitive form values', async () => {
+    const client = buildClient({
+      confirmPayment: jest.fn().mockResolvedValue(
+        buildConfirmation({
+          success: false,
+          failureCode: 'card_declined',
+          message: 'Your card was declined.',
+          attempts: buildAttempts(),
+          attemptsUsed: 2,
+          enrollmentUnlocked: false,
+        })
+      ),
+    });
+    const { navigation } = renderCheckout(client);
+    await flushAllPendingWork();
+    await fillValidCardAndPay();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('checkout-confirm-confirm'));
+    });
+    await flushAllPendingWork();
+
+    expect(navigation.replace).toHaveBeenCalledWith(
+      'PaymentFailed',
+      expect.objectContaining({
+        reason: 'declined',
+        errorCode: 'card_declined',
+        preserve: true,
+        formValues: expect.objectContaining({
+          planId: 'plan-1',
+          cardNumber: '4242 4242 4242 4242',
+          cardExpiry: '12/30',
+          cardName: 'Ada Lovelace',
+        }),
+      })
+    );
+    const [, params] = navigation.replace.mock.calls[0];
+    expect(params.formValues).not.toHaveProperty('cvv');
+  });
+
   it('keeps the dialog open when the request itself fails', async () => {
     const client = buildClient({
       confirmPayment: jest.fn().mockRejectedValue(new Error('Network down')),

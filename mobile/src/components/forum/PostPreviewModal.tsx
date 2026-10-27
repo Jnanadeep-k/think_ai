@@ -1,7 +1,7 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/common';
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
 import type { ForumCategory } from '@/types';
 import { MarkdownPreview } from './MarkdownPreview';
 
@@ -43,12 +43,15 @@ export function PostPreviewModal({
       transparent
       visible={visible}>
       <View style={styles.backdrop} testID={`${testID}-backdrop`}>
-        <View style={styles.sheet} testID={testID}>
+        <View accessibilityViewIsModal style={styles.sheet} testID={testID}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Preview</Text>
+            <Text accessibilityRole="header" style={styles.headerTitle}>
+              Preview
+            </Text>
             <Pressable
               accessibilityLabel="Close preview"
               accessibilityRole="button"
+              hitSlop={hitSlop}
               onPress={onClose}
               testID={`${testID}-close`}>
               <Text style={styles.close}>✕</Text>
@@ -72,14 +75,20 @@ export function PostPreviewModal({
               ))}
             </View>
 
-            <Text style={styles.title} testID={`${testID}-title`}>
+            <Text
+              accessibilityRole="header"
+              style={styles.title}
+              testID={`${testID}-title`}>
               {title.trim() === '' ? 'Untitled thread' : title}
             </Text>
 
             <MarkdownPreview testID={`${testID}-body`} value={body} />
 
             {errorMessage ? (
-              <Text style={styles.error} testID={`${testID}-error`}>
+              <Text
+                accessibilityLiveRegion="assertive"
+                style={styles.error}
+                testID={`${testID}-error`}>
                 {errorMessage}
               </Text>
             ) : null}

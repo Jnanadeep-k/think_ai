@@ -29,13 +29,19 @@ export function CourseDetailScreen({
   } = useCourseDetail(courseId, moduleId);
 
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [justEnrolled, setJustEnrolled] = useState(false);
 
   const handleEnroll = useCallback(() => {
     setIsEnrolling(true);
     // Enrollment mutation lands with the OpenAPI contract; the button state
     // machine is already complete so wiring the call is a one-line change.
-    setTimeout(() => setIsEnrolling(false), 400);
+    setTimeout(() => {
+      setIsEnrolling(false);
+      setJustEnrolled(true);
+    }, 400);
   }, []);
+
+  const enrolled = course?.isEnrolled === true || justEnrolled;
 
   if (hasError) {
     return (
@@ -93,10 +99,44 @@ export function CourseDetailScreen({
 
       <View style={styles.footer} testID="course-detail-footer">
         <EnrollButton
-          isEnrolled={course.isEnrolled}
+          isEnrolled={enrolled}
           isSubmitting={isEnrolling}
           onEnroll={handleEnroll}
         />
+        {justEnrolled ? (
+          <Text style={styles.confirmed} testID="enrollment-confirmed">
+            You&apos;re enrolled. Start with the first lesson.
+          </Text>
+        ) : null}
+        {enrolled ? (
+          <View style={styles.learningActions}>
+            <Text
+              accessibilityRole="button"
+              onPress={() =>
+                navigation.navigate('VideoPlayer', { courseId: course.id })
+              }
+              style={styles.learningLink}
+              testID="play-video">
+              Play first lesson
+            </Text>
+            <Text
+              accessibilityRole="button"
+              onPress={() =>
+                navigation.navigate('Assessment', { assessmentId: course.id })
+              }
+              style={styles.learningLink}
+              testID="take-assessment">
+              Take assessment
+            </Text>
+          </View>
+        ) : null}
+        <Text
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('Checkout', { courseId: course.id })}
+          style={styles.relatedLink}
+          testID="go-to-checkout">
+          Buy this course
+        </Text>
         <Text
           accessibilityRole="button"
           onPress={() => navigation.navigate('GlobalSearch')}
@@ -162,6 +202,21 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: palette.textMuted,
     textAlign: 'center',
+    paddingVertical: spacing.xs,
+  },
+  confirmed: {
+    ...typography.caption,
+    color: palette.success,
+    textAlign: 'center',
+  },
+  learningActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+  },
+  learningLink: {
+    ...typography.label,
+    color: palette.accent,
     paddingVertical: spacing.xs,
   },
 });

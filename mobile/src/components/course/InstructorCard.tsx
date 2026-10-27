@@ -16,6 +16,7 @@ export function InstructorCard({
     <View style={styles.card} testID={testID}>
       <Image
         accessibilityIgnoresInvertColors
+        accessibilityLabel={instructor.name}
         source={{ uri: instructor.avatarUrl }}
         style={styles.avatar}
         testID={`${testID}-avatar`}

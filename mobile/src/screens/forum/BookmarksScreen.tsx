@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ScreenHeader } from '@/components/common';
+import { OfflineBanner, ScreenHeader } from '@/components/common';
 import { BookmarkList } from '@/components/forum/BookmarkList';
 import { SyncIndicator } from '@/components/forum/SyncIndicator';
 import { useBookmarks } from '@/hooks/useBookmarks';
@@ -23,6 +23,9 @@ export function BookmarksScreen({ navigation }: ScreenProps<'Bookmarks'>) {
     hasError,
     error,
     isRemovingId,
+    pendingCount,
+    isSyncing,
+    isOffline,
     load,
     refresh,
     removeBookmark,
@@ -46,6 +49,22 @@ export function BookmarksScreen({ navigation }: ScreenProps<'Bookmarks'>) {
         testID="bookmarks-header"
         title="Bookmarks"
       />
+
+      <OfflineBanner
+        message="You are offline — bookmark changes are queued and will sync later."
+        visible={isOffline}
+      />
+
+      {pendingCount > 0 ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={styles.pendingBanner}
+          testID="bookmarks-pending-banner">
+          {isSyncing
+            ? `Syncing ${pendingCount} pending change${pendingCount === 1 ? '' : 's'}…`
+            : `${pendingCount} change${pendingCount === 1 ? '' : 's'} pending sync`}
+        </Text>
+      ) : null}
 
       {showRemovalError ? (
         <Text
@@ -89,6 +108,18 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     borderWidth: 1,
     color: palette.danger,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    padding: spacing.sm,
+  },
+  pendingBanner: {
+    ...typography.caption,
+    backgroundColor: 'rgba(96, 165, 250, 0.14)',
+    borderColor: palette.info,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    // High-contrast text on the dark blue surface (WCAG AA).
+    color: '#BFDBFE',
     marginHorizontal: spacing.md,
     marginBottom: spacing.xs,
     padding: spacing.sm,

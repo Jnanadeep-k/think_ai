@@ -25,13 +25,21 @@ import {
   PlanCards,
   validateCard,
 } from '@/components/checkout';
-import { useCheckout } from '@/hooks/useCheckout';
+import { useCheckout, type CheckoutFormSnapshot } from '@/hooks/useCheckout';
 import type { ScreenProps } from '@/navigation/types';
 import { palette, radii, spacing, typography } from '@/theme/tokens';
 import { formatINR } from '@/utils/pricing';
-import type { CardDetails } from '@/types/community';
+import type { CardDetails, PaymentConfirmation } from '@/types/community';
+import type { PaymentDetails } from '@/features/payments/types';
+import { failureReasonFromCode } from '@/features/payments/failure';
 
 const EMPTY_CARD: CardDetails = { number: '', expiry: '', cvv: '', name: '' };
+
+function snapshotFromRoute(
+  params: Record<string, unknown> | undefined
+): CheckoutFormSnapshot {
+  return (params ?? {}) as CheckoutFormSnapshot;
+}
 
 /**
  * Page 10 — Checkout (`/checkout`).
@@ -42,6 +50,7 @@ const EMPTY_CARD: CardDetails = { number: '', expiry: '', cvv: '', name: '' };
  * retry attempts inline.
  */
 export function CheckoutScreen({ navigation, route }: ScreenProps<'Checkout'>) {
+  const initialForm = snapshotFromRoute(route.params?.formValues);
   const {
     plans,
     selectedPlan,
@@ -64,9 +73,14 @@ export function CheckoutScreen({ navigation, route }: ScreenProps<'Checkout'>) {
     paymentResult,
     paymentError,
     pay,
-  } = useCheckout(route.params?.courseId);
+  } = useCheckout(route.params?.courseId, initialForm);
 
-  const [card, setCard] = useState<CardDetails>(EMPTY_CARD);
+  const [card, setCard] = useState<CardDetails>(() => ({
+    ...EMPTY_CARD,
+    number: initialForm.cardNumber ?? '',
+    expiry: initialForm.cardExpiry ?? '',
+    name: initialForm.cardName ?? '',
+  }));
   const [showCardErrors, setShowCardErrors] = useState(false);
   const [costCenterError, setCostCenterError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -94,13 +108,52 @@ export function CheckoutScreen({ navigation, route }: ScreenProps<'Checkout'>) {
     setConfirmOpen(true);
   };
 
+  const formSnapshot = (): CheckoutFormSnapshot => ({
+    planId: selectedPlanId,
+    discountCode,
+    costCenter: costCenter.trim() || undefined,
+    cardNumber: card.number,
+    cardExpiry: card.expiry,
+    cardName: card.name,
+  });
+
+  const paymentDetails = (
+    result: PaymentConfirmation
+  ): PaymentDetails => ({
+    id: result.confirmationId ?? result.orderId,
+    planName: selectedPlan?.title ?? 'Course',
+    amount: totals.total,
+    currency: 'INR',
+    transactionId: result.confirmationId ?? result.orderId,
+    paidAt: new Date().toISOString(),
+    courseId: selectedPlan?.courseId ?? '',
+    courseTitle: selectedPlan?.title,
+  });
+
   const handleConfirm = async () => {
     const result = await pay(card);
-    if (result !== null) {
-      // Success and declines both render in the page (dialog closes);
-      // `null` means the request itself failed — keep the dialog open.
-      setConfirmOpen(false);
+    if (result === null) {
+      // The request itself failed (network/5xx): keep the dialog open so the
+      // learner can retry without losing anything they typed.
+      return;
     }
+    setConfirmOpen(false);
+    const formValues = formSnapshot();
+    if (result.success) {
+      navigation.replace('PaymentSuccess', {
+        paymentId: result.confirmationId ?? result.orderId,
+        payment: paymentDetails(result),
+        formValues,
+      });
+      return;
+    }
+    navigation.replace('PaymentFailed', {
+      reason: failureReasonFromCode(result.failureCode),
+      errorCode: result.failureCode,
+      message: result.message,
+      preserve: true,
+      formValues,
+    });
   };
 
   const succeeded = paymentResult !== null && paymentResult.success;

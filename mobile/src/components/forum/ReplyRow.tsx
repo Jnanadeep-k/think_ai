@@ -95,6 +95,7 @@ export function ReplyRow({
         <ReplyVoteControl onVote={onVote} testID={testID} vote={vote} />
         {onReplyTo ? (
           <Pressable
+            accessibilityLabel={`Reply to ${reply.author.name}`}
             accessibilityRole="button"
             hitSlop={hitSlop}
             onPress={() => onReplyTo(reply)}

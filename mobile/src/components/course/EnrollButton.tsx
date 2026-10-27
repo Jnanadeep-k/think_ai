@@ -27,8 +27,9 @@ export function EnrollButton({
 
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled }}
+      accessibilityState={{ disabled: isDisabled, busy: isSubmitting || undefined }}
       disabled={isDisabled}
       onPress={onEnroll}
       style={[

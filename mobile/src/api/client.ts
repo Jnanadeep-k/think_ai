@@ -21,12 +21,14 @@ import type {
   FlagReport,
   MentionUser,
   ModerationPolicy,
+  NotificationPreferences,
   ModerationUser,
   AuditLogEntry,
   PaymentConfirmInput,
   PaymentConfirmation,
   PaymentIntent,
   PaymentIntentInput,
+  PaymentStatusResponse,
   SubmitReplyInput,
   SubmitReplyResult,
   ThreadDetail,
@@ -73,12 +75,20 @@ export interface LearningApiClient {
   setThreadSolved(threadId: string, solved: boolean): Promise<ThreadDetail>;
   searchMentionUsers(query: string): Promise<MentionUser[]>;
 
+  // Notification preferences (/users/:id/notification-preferences)
+  fetchNotificationPreferences(userId: string): Promise<NotificationPreferences>;
+  saveNotificationPreferences(
+    userId: string,
+    preferences: NotificationPreferences
+  ): Promise<NotificationPreferences>;
+
   // Page 7 — Create Post (/forum/new)
   fetchDiscussionCategories(): Promise<ForumCategory[]>;
   createDiscussion(input: CreateThreadInput): Promise<CreateDiscussionResult>;
 
   // Page 8 — Bookmarks (/forum/bookmarks)
   fetchBookmarks(): Promise<BookmarkPage>;
+  addBookmark(userId: string, discussionId: string): Promise<void>;
   removeBookmark(userId: string, discussionId: string): Promise<void>;
 
   // Page 9 — Moderation Dashboard (/forum/moderate)
@@ -108,6 +118,7 @@ export interface LearningApiClient {
   }): Promise<DiscountValidation>;
   createPaymentIntent(input: PaymentIntentInput): Promise<PaymentIntent>;
   confirmPayment(input: PaymentConfirmInput): Promise<PaymentConfirmation>;
+  fetchPaymentStatus(paymentId: string): Promise<PaymentStatusResponse>;
 }
 
 /** Method names owned by Pages 6–10 (the Day-2 community/commerce slice). */
@@ -118,9 +129,12 @@ export type CommunityApiMethod =
   | 'voteThread'
   | 'setThreadSolved'
   | 'searchMentionUsers'
+  | 'fetchNotificationPreferences'
+  | 'saveNotificationPreferences'
   | 'fetchDiscussionCategories'
   | 'createDiscussion'
   | 'fetchBookmarks'
+  | 'addBookmark'
   | 'removeBookmark'
   | 'fetchFlaggedQueue'
   | 'fetchFlagReports'
@@ -137,7 +151,8 @@ export type CommunityApiMethod =
   | 'fetchPlans'
   | 'validateDiscountCode'
   | 'createPaymentIntent'
-  | 'confirmPayment';
+  | 'confirmPayment'
+  | 'fetchPaymentStatus';
 
 /**
  * Pages 6–10 as a standalone surface. Implemented by the live HTTP client in
