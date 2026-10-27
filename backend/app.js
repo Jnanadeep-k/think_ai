@@ -80,7 +80,10 @@ app.use(
     })
 );
 
-app.use(morgan("dev"));
+app.use(morgan("dev", {
+    // Local signed PDF capabilities must not be recorded in URL logs.
+    skip: req => /^\/api\/lms\/certificates\/\d+\/pdf(?:\?|$)/.test(req.originalUrl)
+}));
 
 // ============================================================
 // SESSION
@@ -144,6 +147,10 @@ const swaggerOptions = {
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const patanSpec = require('./lms/openapi.json');
+Object.assign(swaggerSpec.paths, patanSpec.paths);
+swaggerSpec.components.schemas = {...swaggerSpec.components.schemas, ...patanSpec.components.schemas};
+swaggerSpec.servers = [{url:'/'}];
 
 app.use(
     "/api-docs",
@@ -180,6 +187,9 @@ app.get("/api/health", (req, res) => {
 // ============================================================
 // API ROUTES
 // ============================================================
+
+// Patan LMS routes must be mounted before legacy resource routes.
+require("./lms").installLms(app);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);

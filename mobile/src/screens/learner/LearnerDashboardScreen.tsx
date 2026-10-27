@@ -1,3 +1,4 @@
+import {LmsSyncIndicator} from '@/lms/SyncIndicator';
 import { useCallback } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -64,6 +65,8 @@ export function LearnerDashboardScreen({
           subtitle={`${completedCount} completed · ${enrollments.length - completedCount} in progress`}
           title="My Learning"
         />
+
+        <LmsSyncIndicator/>
 
         {showSkeleton ? (
           <View style={styles.section}>

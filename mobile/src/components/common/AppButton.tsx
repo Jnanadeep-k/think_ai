@@ -62,6 +62,7 @@ export function AppButton({
       <Text
         style={[
           styles.label,
+          variant === 'primary' && {color: palette.textPrimary},
           variant === 'secondary' && styles.secondaryLabel,
         ]}>
         {label}

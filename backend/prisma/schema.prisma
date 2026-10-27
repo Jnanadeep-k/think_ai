@@ -33,6 +33,8 @@ model Course {
   instructorDetails String?
   status            String  @default("ACTIVE")
 
+  completionThreshold Float @default(80)
+
   batches Batch[]
   modules Module[]
 
@@ -90,6 +92,8 @@ model Enrollment {
   lessonProgress        LessonProgress[]
   assessmentSubmissions AssessmentSubmission[]
   certificate           Certificate?
+  lmsNotes LmsNote[]
+  lmsCertificateDelivery LmsCertificateDelivery?
 
   @@index([batchId])
   @@index([studentEmail])
@@ -123,6 +127,8 @@ model Module {
   courseId Int
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
+  order Int @default(0)
+
   lessons     Lesson[]
   assessments Assessment[]
 
@@ -148,7 +154,12 @@ model Lesson {
   moduleId Int
   module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
+  durationSeconds Float @default(0)
+  completionThreshold Float @default(90)
+  videoBytes Int?
+
   progress LessonProgress[]
+  lmsNotes LmsNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -219,6 +230,9 @@ model Assessment {
 
   moduleId Int
   module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  passPercentage Float @default(60)
+  maxAttempts Int @default(3)
 
   questions   Question[]
   submissions AssessmentSubmission[]
@@ -418,6 +432,12 @@ model AssessmentSubmission {
 
   status String @default("SUBMITTED")
 
+  startedAt DateTime @default(now())
+  expiresAt DateTime?
+  flaggedQuestionIds Json?
+  gradingLeaseAt DateTime?
+  gradingError String?
+
   submittedAt DateTime @default(now())
 
   answers SubmissionAnswer[]
@@ -451,6 +471,7 @@ model SubmissionAnswer {
   // Coding / descriptive
   answerText String?
   code       String?
+  language   String?
 
   // Evaluation
   isCorrect     Boolean?
@@ -659,4 +680,40 @@ model BreakoutRoomMember {
   @@unique([roomId, userId])
   @@index([roomId])
   @@index([userId])
+}
+
+// Patan: learner-owned notes and durable certificate notification retries.
+model LmsNote {
+  id Int @id @default(autoincrement())
+  enrollmentId Int
+  lessonId Int
+  text String
+  enrollment Enrollment @relation(fields:[enrollmentId], references:[id], onDelete:Cascade)
+  lesson Lesson @relation(fields:[lessonId], references:[id], onDelete:Cascade)
+  updatedAt DateTime @updatedAt
+  @@unique([enrollmentId, lessonId])
+}
+model LmsCertificateDelivery {
+  id Int @id @default(autoincrement())
+  enrollmentId Int @unique
+  enrollment Enrollment @relation(fields:[enrollmentId], references:[id], onDelete:Cascade)
+  status String @default("PENDING")
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError String?
+  updatedAt DateTime @updatedAt
+}
+
+model LmsReportDelivery {
+  id Int @id @default(autoincrement())
+  periodKey String @unique
+  from String
+  to String
+  recipients Json
+  status String @default("PENDING")
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  sentAt DateTime?
+  lastError String?
+  updatedAt DateTime @updatedAt
 }
