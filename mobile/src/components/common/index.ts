@@ -24,3 +24,12 @@ export type { ConfirmDialogProps } from './ConfirmDialog';
 
 export { Skeleton } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
+
+export { OfflineBanner } from './OfflineBanner';
+export type { OfflineBannerProps } from './OfflineBanner';
+
+export { ErrorBoundary } from './ErrorBoundary';
+export type {
+  ErrorBoundaryProps,
+  ErrorBoundaryFallbackProps,
+} from './ErrorBoundary';

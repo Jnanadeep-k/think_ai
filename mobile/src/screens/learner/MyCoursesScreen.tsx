@@ -94,14 +94,17 @@ export function MyCoursesScreen({ navigation }: ScreenProps<'MyCourses'>) {
         ) : null}
 
         {!hasError && courses.length > 0 ? (
-          <View style={styles.section} testID="my-courses-results">
-            <CourseGrid
-              courses={courses}
-              onSelect={(course) =>
-                navigation.navigate('CourseDetail', { courseId: course.id })
-              }
-              width={contentWidth}
-            />
+          <View style={styles.section} testID="course-list">
+            <View testID="my-courses-results">
+              <CourseGrid
+                courses={courses}
+                firstCardTestID="course-card-0"
+                onSelect={(course) =>
+                  navigation.navigate('CourseDetail', { courseId: course.id })
+                }
+                width={contentWidth}
+              />
+            </View>
             {isLoading ? <InlineSpinner testID="my-courses-inline-spinner" /> : null}
           </View>
         ) : null}

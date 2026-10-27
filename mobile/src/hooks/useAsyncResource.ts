@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { SEARCH_DEBOUNCE_MS } from '@/theme/tokens';
+import { toUserMessage } from '@/api/errors';
 import type { AsyncState } from '@/types';
 
 export function createInitialAsyncState<T>(data: T): AsyncState<T> {
@@ -8,13 +9,7 @@ export function createInitialAsyncState<T>(data: T): AsyncState<T> {
 }
 
 export function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  return 'Something went wrong. Please try again.';
+  return toUserMessage(error);
 }
 
 /**

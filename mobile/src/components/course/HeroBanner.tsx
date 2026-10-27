@@ -28,7 +28,10 @@ export function HeroBanner({
         <Text style={styles.level} testID={`${testID}-level`}>
           {course.level.toUpperCase()}
         </Text>
-        <Text style={styles.title} testID={`${testID}-title`}>
+        <Text
+          accessibilityRole="header"
+          style={styles.title}
+          testID={`${testID}-title`}>
           {course.title}
         </Text>
         <Text style={styles.subtitle} testID={`${testID}-subtitle`}>

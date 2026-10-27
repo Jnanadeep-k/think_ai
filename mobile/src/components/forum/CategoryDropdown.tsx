@@ -54,7 +54,11 @@ export function CategoryDropdown({
           onPress={() => setIsOpen(false)}
           style={styles.backdrop}
           testID={`${testID}-backdrop`}>
-          <View style={styles.menu} testID={`${testID}-menu`}>
+          <View
+            accessibilityRole="menu"
+            accessibilityViewIsModal
+            style={styles.menu}
+            testID={`${testID}-menu`}>
             {categories.map((category) => {
               const isSelected = category.id === value;
               return (

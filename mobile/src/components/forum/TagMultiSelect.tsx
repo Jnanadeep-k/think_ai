@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
 
 export const MAX_TAGS = 5;
 
@@ -55,6 +55,7 @@ export function TagMultiSelect({
             <Pressable
               accessibilityLabel={`Remove tag ${tag}`}
               accessibilityRole="button"
+              hitSlop={hitSlop}
               key={tag}
               onPress={() => toggleTag(tag)}
               style={[styles.chip, styles.chipSelected]}
@@ -69,8 +70,10 @@ export function TagMultiSelect({
         <View style={styles.chipRow} testID={`${testID}-suggestions`}>
           {suggestions.map((tag) => (
             <Pressable
+              accessibilityLabel={`Add tag ${tag}`}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: false, disabled: isFull }}
+              hitSlop={hitSlop}
               key={tag}
               onPress={() => toggleTag(tag)}
               style={[styles.chip, isFull && styles.chipDisabled]}
@@ -110,7 +113,10 @@ export function TagMultiSelect({
         </View>
       ) : null}
 
-      <Text style={styles.counter} testID={`${testID}-counter`}>
+      <Text
+        accessibilityLiveRegion="polite"
+        style={styles.counter}
+        testID={`${testID}-counter`}>
         {value.length}/{maxTags} tags
       </Text>
     </View>

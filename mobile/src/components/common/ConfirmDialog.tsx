@@ -44,8 +44,14 @@ export function ConfirmDialog({
       transparent
       visible={visible}>
       <View style={styles.backdrop} testID={`${testID}-backdrop`}>
-        <View style={styles.card} testID={testID}>
-          <Text style={styles.title} testID={`${testID}-title`}>
+        <View
+          accessibilityViewIsModal
+          style={styles.card}
+          testID={testID}>
+          <Text
+            accessibilityRole="header"
+            style={styles.title}
+            testID={`${testID}-title`}>
             {title}
           </Text>
           {message ? (
@@ -66,6 +72,7 @@ export function ConfirmDialog({
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ disabled: isBusy }}
               disabled={isBusy}
               onPress={onCancel}
               style={({ pressed }) => [

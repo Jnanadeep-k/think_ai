@@ -1,5 +1,12 @@
 import { useCallback } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CourseCard } from '@/components/learner/CourseCard';
@@ -56,9 +63,25 @@ export function LearnerDashboardScreen({
         testID="dashboard-scroll-view">
         <ScreenHeader
           right={
-            <View style={styles.stat} testID="dashboard-enrollment-count">
-              <Text style={styles.statLabel}>Enrolled</Text>
-              <Text style={styles.statValue}>{enrollments.length}</Text>
+            <View style={styles.headerRight}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => navigation.navigate('NotificationPreferences')}
+                style={styles.browseButton}
+                testID="notification-settings">
+                <Text style={styles.browseLabel}>Alerts</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => navigation.navigate('MyCourses')}
+                style={styles.browseButton}
+                testID="browse-tab">
+                <Text style={styles.browseLabel}>Browse</Text>
+              </Pressable>
+              <View style={styles.stat} testID="dashboard-enrollment-count">
+                <Text style={styles.statLabel}>Enrolled</Text>
+                <Text style={styles.statValue}>{enrollments.length}</Text>
+              </View>
             </View>
           }
           subtitle={`${completedCount} completed · ${enrollments.length - completedCount} in progress`}
@@ -115,6 +138,21 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: spacing.md,
     marginTop: spacing.xs,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  browseButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+    backgroundColor: palette.surfaceMuted,
+  },
+  browseLabel: {
+    ...typography.label,
+    color: palette.accent,
   },
   stat: {
     alignItems: 'center',
