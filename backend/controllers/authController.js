@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 // ==========================================
 exports.register = async (req, res) => {
     try {
-        const { email, password, name, role } = req.body;
+        const { email, password, name } = req.body;
 
         // Basic validation
         if (!email || !password) {
@@ -39,7 +39,7 @@ exports.register = async (req, res) => {
                 email,
                 password: hashedPassword,
                 name: name || email.split('@')[0], // Fallback if name is empty
-                role: role || 'Learner'            // Default role matching RBAC core requirements
+                role: 'Learner'
             }
         });
 

@@ -219,7 +219,7 @@ router.get(
 router.post(
     "/",
     authenticateToken,
-    authorizeRoles('ADMIN'),
+    authorizeRoles(['Admin']),
     validateCourseCreate,
     createCourse
 );
