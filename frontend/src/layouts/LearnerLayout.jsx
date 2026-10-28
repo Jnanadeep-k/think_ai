@@ -6,6 +6,7 @@ import { useTheme } from '../components/ThemeContext';
 import GlobalSearch from '../pages/search/GlobalSearch';
 import NotificationContainer from '../components/preferenceNotification/PreferenceNotificationContainer';
 import NotificationDropdown from '../components/preferenceNotification/PreferenceNotificationsDropDown';
+import LiveSessionNotificationListener from '../components/preferenceNotification/LiveSessionNotificationListener';
 
 export default function LearnerLayout() {
   const dispatch = useDispatch();
@@ -32,6 +33,7 @@ export default function LearnerLayout() {
     <div className={`min-h-screen h-screen flex flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#181b22] text-[#f1f3f9]' : 'bg-slate-50 text-slate-900'}`}>
 
       <NotificationContainer />
+      <LiveSessionNotificationListener />
 
       <header className={`shrink-0 z-50 border-b backdrop-blur-md transition-colors duration-300 ${isDarkMode ? 'bg-[#212631]/90 border-[#323846] text-[#f1f3f9]' : 'bg-white border-slate-200 text-slate-900'}`}>
         <div className="w-full px-4 sm:px-6 lg:px-8">
