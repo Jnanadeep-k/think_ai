@@ -18,47 +18,57 @@ import type { RootStackParamList } from "./types";
  *   thinkzai://search
  *   thinkzai://forum?categoryId=cat-1
  */
+export type ScreenName = keyof RootStackParamList;
+export const DEEP_LINK_PREFIXES = ["thinkzai://", "thinkz://", "https://app.thinkzai.com"] as const;
+export const DEEP_LINK_ALIASES = ["course/:id", "forum/thread/:id", "assessment/:id"] as const;
+
+// Both URL parsers derive their canonical paths from this table.
+export const DEEP_LINK_ROUTES: Readonly<Partial<Record<ScreenName, string>>> = {
+  SignIn: "auth/login", Login: "login", AdminHome: "admin", Account: "account",
+  LmsHome: "learner/workspace", CoursePlayer: "learner/courses/:courseId/play",
+  AssessmentTaking: "learner/assessments/:assessmentId/take",
+  AssessmentResults: "learner/assessments/:assessmentId/results",
+  LmsCertificate: "learner/certificates/:certificateId", Analytics: "admin/analytics",
+  CodePlayground: "learner/playground", PlaygroundHistory: "learner/playground/history",
+  LearnerProfile: "learner/profile", LmsSettings: "learner/settings", Downloads: "learner/downloads",
+  LearnerDashboard: "learner/dashboard", MyCourses: "learner/courses",
+  CourseDetail: "learner/courses/:courseId", GlobalSearch: "search", ForumHome: "forum",
+  ForumThread: "forum/threads/:threadId", CreatePost: "forum/new", Bookmarks: "forum/bookmarks",
+  Moderation: "forum/moderate", Checkout: "checkout", PaymentSuccess: "checkout/success",
+  PaymentFailed: "checkout/failed", NotificationPreferences: "settings/notifications",
+  VideoPlayer: "learning/courses/:courseId/play", Assessment: "learning/assessments/:assessmentId",
+  Results: "learning/assessments/:assessmentId/results", Certificate: "learning/certificates/:courseId",
+};
+
+function canonicalPath(path: string) {
+  return path.replace(/^\/?course\//, "learner/courses/")
+    .replace(/^\/?forum\/thread\//, "forum/threads/")
+    .replace(/^\/?assessment\//, "learning/assessments/");
+}
+
 export const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ["thinkzai://", "https://app.thinkzai.com"],
+  prefixes: [...DEEP_LINK_PREFIXES],
+  getStateFromPath: (path, options) => getStateFromPath(canonicalPath(path), options),
   config: {
     screens: {
-      SignIn: "auth/login",
-      AdminHome: "admin",
-      Account: "account",
-      LmsHome: "learner/workspace",
+      ...DEEP_LINK_ROUTES,
       CoursePlayer: {
-        path: "learner/courses/:courseId/play",
+        path: DEEP_LINK_ROUTES.CoursePlayer!,
         parse: { courseId: Number, lessonId: Number },
       },
       AssessmentTaking: {
-        path: "learner/assessments/:assessmentId/take",
+        path: DEEP_LINK_ROUTES.AssessmentTaking!,
         parse: { assessmentId: Number, enrollmentId: Number },
       },
       AssessmentResults: {
-        path: "learner/assessments/:assessmentId/results",
+        path: DEEP_LINK_ROUTES.AssessmentResults!,
         parse: { assessmentId: Number, attemptId: Number },
       },
-      Certificate: {
-        path: "learner/certificates/:certificateId",
+      LmsCertificate: {
+        path: DEEP_LINK_ROUTES.LmsCertificate!,
         parse: { certificateId: Number },
       },
-      Analytics: "admin/analytics",
-      CodePlayground: "learner/playground",
-      PlaygroundHistory: "learner/playground/history",
-      LearnerProfile: "learner/profile",
-      LmsSettings: "learner/settings",
-      Downloads: "learner/downloads",
-      LearnerDashboard: "learner/dashboard",
-      MyCourses: "learner/courses",
-      CourseDetail: "learner/courses/:courseId",
-      GlobalSearch: "search",
-      ForumHome: "forum",
       // Pages 6–10 mirror the web routes.
-      ForumThread: "forum/threads/:threadId",
-      CreatePost: "forum/new",
-      Bookmarks: "forum/bookmarks",
-      Moderation: "forum/moderate",
-      Checkout: "checkout",
     },
   },
 };
@@ -70,11 +80,11 @@ export function linkingForRole(
   return {
     ...linking,
     getStateFromPath(path, options) {
-      const state = getStateFromPath(path, options);
+      const state = getStateFromPath(canonicalPath(path), options);
       if (!state) return state;
       const current = state.routes[state.index ?? state.routes.length - 1];
       const name = current?.name as keyof RootStackParamList | undefined;
-      if (name === "SignIn")
+      if (name === "SignIn" || name === "Login")
         return signedIn ? { routes: [{ name: roleHome(role) }] } : state;
       const audience = name ? routeAudience[name] : undefined;
       if (!signedIn || !audience || !allowsAudience(audience, role))

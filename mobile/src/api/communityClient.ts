@@ -12,6 +12,8 @@ import type {
   MentionUser,
   ModerationPolicy,
   ModerationUser,
+  NotificationPreferences,
+  PaymentStatusResponse,
   AuditLogEntry,
   PaymentConfirmInput,
   PaymentConfirmation,
@@ -95,25 +97,29 @@ export function createCommunityClient(): CommunityApiClient {
   return {
     // ---- Page 6 — Forum Thread Detail -------------------------------------
     fetchThreadDetail(threadId: string): Promise<ThreadDetail> {
-      return apiData<ThreadDetail>(`/discussions/${segment(threadId)}`);
+      return apiData<ThreadDetail>(`/forum/threads/${segment(threadId)}`);
     },
 
     fetchThreadReplies(threadId: string): Promise<ThreadReply[]> {
-      return apiData<ThreadReply[]>(`/comments/${segment(threadId)}`);
+      return apiData<ThreadReply[]>(
+        `/forum/threads/${segment(threadId)}/replies`
+      );
     },
 
     async submitReply(
       threadId: string,
       input: SubmitReplyInput
     ): Promise<SubmitReplyResult> {
-      const payload = await apiRequest<ThreadReply>('/comments', {
-        method: 'POST',
-        body: {
-          discussionId: threadId,
-          body: input.body,
-          parentId: input.parentId ?? null,
-        },
-      });
+      const payload = await apiRequest<ThreadReply>(
+        `/forum/threads/${segment(threadId)}/replies`,
+        {
+          method: 'POST',
+          body: {
+            body: input.body,
+            parentId: input.parentId ?? null,
+          },
+        }
+      );
       return {
         reply: payload.data,
         notificationsCreated:
@@ -131,16 +137,37 @@ export function createCommunityClient(): CommunityApiClient {
     },
 
     setThreadSolved(threadId: string, solved: boolean): Promise<ThreadDetail> {
-      return apiData<ThreadDetail>(`/discussions/${segment(threadId)}/solved`, {
-        method: 'PATCH',
-        body: { solved },
-      });
+      return apiData<ThreadDetail>(
+        `/forum/threads/${segment(threadId)}/solved`,
+        {
+          method: 'PATCH',
+          body: { solved },
+        }
+      );
     },
 
     searchMentionUsers(query: string): Promise<MentionUser[]> {
-      return apiData<MentionUser[]>('/moderation/users/search', {
+      return apiData<MentionUser[]>('/users/search', {
         query: { q: query },
       });
+    },
+
+    fetchNotificationPreferences(
+      userId: string
+    ): Promise<NotificationPreferences> {
+      return apiData<NotificationPreferences>(
+        `/users/${segment(userId)}/notification-preferences`
+      );
+    },
+
+    saveNotificationPreferences(
+      userId: string,
+      preferences: NotificationPreferences
+    ): Promise<NotificationPreferences> {
+      return apiData<NotificationPreferences>(
+        `/users/${segment(userId)}/notification-preferences`,
+        { method: 'PATCH', body: preferences }
+      );
     },
 
     // ---- Page 7 — Create Post ---------------------------------------------
@@ -184,6 +211,13 @@ export function createCommunityClient(): CommunityApiClient {
       };
     },
 
+    async addBookmark(userId: string, discussionId: string): Promise<void> {
+      await apiData('/bookmarks', {
+        method: 'POST',
+        body: { userId, discussionId },
+      });
+    },
+
     async removeBookmark(userId: string, discussionId: string): Promise<void> {
       await apiData(`/bookmarks/${segment(userId)}/${segment(discussionId)}`, {
         method: 'DELETE',
@@ -192,7 +226,7 @@ export function createCommunityClient(): CommunityApiClient {
 
     // ---- Page 9 — Moderation Dashboard ------------------------------------
     fetchFlaggedQueue(): Promise<FlagQueueItem[]> {
-      return apiData<FlagQueueItem[]>('/moderation/flagged');
+      return apiData<FlagQueueItem[]>('/forum/flags');
     },
 
     fetchFlagReports(): Promise<FlagReport[]> {
@@ -228,8 +262,8 @@ export function createCommunityClient(): CommunityApiClient {
 
     async dismissFlag(target: ContentTarget): Promise<ContentActionResult> {
       const data = await apiData<{ id: string; type: string; resolved?: boolean }>(
-        `/moderation/content/${segment(target.id)}/resolve`,
-        { method: 'POST', body: { type: target.type } }
+        `/forum/posts/${segment(target.id)}/action`,
+        { method: 'PATCH', body: { type: target.type, action: 'resolve' } }
       );
       return { id: data.id, type: target.type, resolved: data.resolved ?? true };
     },
@@ -239,24 +273,37 @@ export function createCommunityClient(): CommunityApiClient {
       hidden: boolean
     ): Promise<ContentActionResult> {
       const data = await apiData<{ id: string; type: string; hidden: boolean }>(
-        `/moderation/content/${segment(target.id)}`,
-        { method: 'PATCH', body: { type: target.type, hidden } }
+        `/forum/posts/${segment(target.id)}/action`,
+        {
+          method: 'PATCH',
+          body: { type: target.type, action: hidden ? 'hide' : 'show' },
+        }
       );
       return { id: data.id, type: target.type, hidden: data.hidden };
     },
 
     /**
-     * Soft-delete: the backend exposes no hard-delete route, so "Delete" hides
-     * the content from the community and resolves its flags — the composite of
-     * the two supported mutations, applied in sequence.
+     * Soft-delete: the backend aliases `delete` to hide + resolve in one
+     * atomic action, so the moderation screen needs a single round-trip.
      */
     async deleteManagedContent(target: ContentTarget): Promise<ContentActionResult> {
-      await this.setManagedContentVisibility(target, true);
-      return this.dismissFlag(target).then((result) => ({
-        ...result,
-        hidden: true,
-        deleted: true,
-      }));
+      const data = await apiData<{
+        id: string;
+        type: string;
+        hidden?: boolean;
+        resolved?: boolean;
+        deleted?: boolean;
+      }>(`/forum/posts/${segment(target.id)}/action`, {
+        method: 'PATCH',
+        body: { type: target.type, action: 'delete' },
+      });
+      return {
+        id: data.id,
+        type: target.type,
+        hidden: data.hidden ?? true,
+        resolved: data.resolved ?? true,
+        deleted: data.deleted ?? true,
+      };
     },
 
     warnModerationUser(userId: string): Promise<ModerationUser> {
@@ -452,6 +499,12 @@ export function createCommunityClient(): CommunityApiClient {
         }
         throw cause;
       }
+    },
+
+    fetchPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
+      return apiData<PaymentStatusResponse>(
+        `/v1/payments/${segment(paymentId)}/status`
+      );
     },
   };
 }

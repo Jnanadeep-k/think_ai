@@ -32,7 +32,12 @@ export function SearchBar({
 
   return (
     <View style={styles.container} testID={testID}>
-      <Text style={styles.leadingIcon}>🔍</Text>
+      <Text
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={styles.leadingIcon}>
+        🔍
+      </Text>
       <TextInput
         accessibilityLabel={placeholder}
         autoCapitalize="none"
@@ -56,7 +61,11 @@ export function SearchBar({
         </Pressable>
       ) : null}
       {isSearching ? (
-        <Text style={styles.spinner} testID={`${testID}-searching`}>
+        <Text
+          accessibilityLabel="Searching"
+          accessibilityLiveRegion="polite"
+          style={styles.spinner}
+          testID={`${testID}-searching`}>
           …
         </Text>
       ) : null}

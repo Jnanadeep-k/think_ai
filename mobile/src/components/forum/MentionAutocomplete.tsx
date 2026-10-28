@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
 import type { MentionUser } from '@/types/community';
 
 export interface MentionAutocompleteProps {
@@ -47,12 +47,20 @@ export function MentionAutocomplete({
   return (
     <View style={styles.panel} testID={testID}>
       {isLoading ? (
-        <View style={styles.statusRow} testID={`${testID}-loading`}>
+        <View
+          accessibilityLabel="Searching members"
+          accessibilityLiveRegion="polite"
+          accessible
+          style={styles.statusRow}
+          testID={`${testID}-loading`}>
           <ActivityIndicator color={palette.brandAlt} size="small" />
           <Text style={styles.statusText}>Searching members…</Text>
         </View>
       ) : suggestions.length === 0 ? (
-        <Text style={styles.statusText} testID={`${testID}-empty`}>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={styles.statusText}
+          testID={`${testID}-empty`}>
           No matching members.
         </Text>
       ) : (
@@ -60,6 +68,7 @@ export function MentionAutocomplete({
           <Pressable
             accessibilityLabel={`Mention ${user.username}`}
             accessibilityRole="button"
+            hitSlop={hitSlop}
             key={user.id}
             onPress={() => onSelect(user)}
             style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}

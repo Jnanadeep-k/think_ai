@@ -1,3 +1,12 @@
+import { ErrorBoundary } from "@/components/common";
+import { withErrorBoundary } from "@/navigation/withErrorBoundary";
+import { NotificationPreferencesScreen } from "@/features/notifications/screens/NotificationPreferencesScreen";
+import { PaymentFailedScreen } from "@/features/payments/screens/PaymentFailedScreen";
+import { PaymentSuccessScreen } from "@/features/payments/screens/PaymentSuccessScreen";
+import { AssessmentScreen } from "@/screens/learning/AssessmentScreen";
+import { CertificateScreen as CompanyCertificateScreen } from "@/screens/learning/CertificateScreen";
+import { ResultsScreen } from "@/screens/learning/ResultsScreen";
+import { VideoPlayerScreen } from "@/screens/learning/VideoPlayerScreen";
 import { useMemo, type ComponentType } from "react";
 import { Pressable, Text, View } from "react-native";
 import { signOut } from "@/api/session";
@@ -16,7 +25,7 @@ import { LmsHomeScreen } from "@/lms/screens/HomeScreen";
 import { CoursePlayerScreen } from "@/lms/screens/CoursePlayerScreen";
 import { AssessmentTakingScreen } from "@/lms/screens/AssessmentTakingScreen";
 import { AssessmentResultsScreen } from "@/lms/screens/ResultsScreen";
-import { CertificateScreen } from "@/lms/screens/CertificateScreen";
+import { CertificateScreen as LmsCertificateScreen } from "@/lms/screens/CertificateScreen";
 import { DownloadsScreen } from "@/lms/screens/DownloadsScreen";
 import { AnalyticsScreen } from "@/lms/screens/AnalyticsScreen";
 import {
@@ -65,7 +74,7 @@ function protect<Name extends keyof RootStackParamList>(
   Component: ComponentType<ScreenProps<Name>>,
   audience: AccessAudience,
 ) {
-  return function ProtectedScreen(props: ScreenProps<Name>) {
+  function ProtectedScreen(props: ScreenProps<Name>) {
     const { account } = useLms();
     return (
       <AccessGate
@@ -79,7 +88,8 @@ function protect<Name extends keyof RootStackParamList>(
         <Component {...props} />
       </AccessGate>
     );
-  };
+  }
+  return withErrorBoundary(ProtectedScreen, Component.displayName || Component.name);
 }
 const ProtectedAdminHome = protect<"AdminHome">(AdminHomeScreen, "admin");
 const ProtectedAccount = protect<"Account">(AccountScreen, "account");
@@ -96,8 +106,8 @@ const ProtectedAssessmentResults = protect<"AssessmentResults">(
   AssessmentResultsScreen,
   "learner",
 );
-const ProtectedCertificate = protect<"Certificate">(
-  CertificateScreen,
+const ProtectedLmsCertificate = protect<"LmsCertificate">(
+  LmsCertificateScreen,
   "learner",
 );
 const ProtectedDownloads = protect<"Downloads">(DownloadsScreen, "learner");
@@ -143,6 +153,14 @@ const ProtectedModeration = protect<"Moderation">(
   "moderation",
 );
 const ProtectedCheckout = protect<"Checkout">(CheckoutScreen, "learner");
+
+const ProtectedPaymentSuccess = protect<"PaymentSuccess">(PaymentSuccessScreen, "learner");
+const ProtectedPaymentFailed = protect<"PaymentFailed">(PaymentFailedScreen, "learner");
+const ProtectedNotificationPreferences = protect<"NotificationPreferences">(NotificationPreferencesScreen, "account");
+const ProtectedVideoPlayer = protect<"VideoPlayer">(VideoPlayerScreen, "learner");
+const ProtectedAssessment = protect<"Assessment">(AssessmentScreen, "learner");
+const ProtectedResults = protect<"Results">(ResultsScreen, "learner");
+const ProtectedCompanyCertificate = protect<"Certificate">(CompanyCertificateScreen, "learner");
 
 export function RootNavigator() {
   const { session, account, ready, accessStatus } = useLms();
@@ -242,8 +260,8 @@ export function RootNavigator() {
           options={{ title: "Results" }}
         />
         <Stack.Screen
-          name="Certificate"
-          component={ProtectedCertificate}
+          name="LmsCertificate"
+          component={ProtectedLmsCertificate}
           options={{ title: "Certificate" }}
         />
         <Stack.Screen
@@ -326,6 +344,14 @@ export function RootNavigator() {
           name="Checkout"
           options={{ title: "Checkout" }}
         />
+        <Stack.Screen name="Login" component={SignInScreen} options={{ title: "Sign in" }} />
+        <Stack.Screen name="PaymentSuccess" component={ProtectedPaymentSuccess} options={{ title: "Payment Successful" }} />
+        <Stack.Screen name="PaymentFailed" component={ProtectedPaymentFailed} options={{ title: "Payment Failed" }} />
+        <Stack.Screen name="NotificationPreferences" component={ProtectedNotificationPreferences} options={{ title: "Notification Preferences" }} />
+        <Stack.Screen name="VideoPlayer" component={ProtectedVideoPlayer} options={{ title: "Lesson" }} />
+        <Stack.Screen name="Assessment" component={ProtectedAssessment} options={{ title: "Assessment" }} />
+        <Stack.Screen name="Results" component={ProtectedResults} options={{ title: "Results" }} />
+        <Stack.Screen name="Certificate" component={ProtectedCompanyCertificate} options={{ title: "Certificate" }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -336,11 +362,13 @@ export function App() {
     <SafeAreaProvider>
       <ApiClientProvider>
         <StatusBar style="light" />
-        <LmsProvider>
-          <LmsErrorBoundary>
-            <RootNavigator />
-          </LmsErrorBoundary>
-        </LmsProvider>
+        <ErrorBoundary context="root">
+          <LmsProvider>
+            <LmsErrorBoundary>
+              <RootNavigator />
+            </LmsErrorBoundary>
+          </LmsProvider>
+        </ErrorBoundary>
       </ApiClientProvider>
     </SafeAreaProvider>
   );

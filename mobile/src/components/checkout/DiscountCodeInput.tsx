@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
 import { formatINR } from '@/utils/pricing';
 import type { DiscountValidation } from '@/types/community';
 
@@ -51,7 +51,12 @@ export function DiscountCodeInput({
           value={value}
         />
         <Pressable
+          accessibilityLabel="Apply discount code"
           accessibilityRole="button"
+          accessibilityState={{
+            disabled: disabled || isChecking || value.trim() === '',
+            busy: isChecking,
+          }}
           disabled={disabled || isChecking || value.trim() === ''}
           onPress={onApply}
           style={({ pressed }) => [
@@ -68,6 +73,7 @@ export function DiscountCodeInput({
 
       {validation !== null ? (
         <View
+          accessibilityLiveRegion="polite"
           style={[
             styles.status,
             validation.valid ? styles.statusValid : styles.statusInvalid,
@@ -85,7 +91,9 @@ export function DiscountCodeInput({
           </Text>
           {validation.valid ? (
             <Pressable
+              accessibilityLabel="Remove discount code"
               accessibilityRole="button"
+              hitSlop={hitSlop}
               onPress={onClear}
               testID={`${testID}-clear`}>
               <Text style={styles.clearLabel}>Remove</Text>

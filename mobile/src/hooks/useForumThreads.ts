@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useApiClient } from './useApiClient';
 import { toErrorMessage } from './useAsyncResource';
+import { useConnectivity } from './useConnectivity';
+import { readThreadCache, writeThreadCache } from '@/offline/threadCache';
 import { FORUM_PAGE_SIZE, INFINITE_SCROLL_THRESHOLD } from '@/theme/tokens';
 import type {
   CreateThreadInput,
@@ -36,8 +38,11 @@ export function useForumThreads(options: UseForumThreadsOptions = {}) {
   } = options;
 
   const client = useApiClient();
+  const { isOffline } = useConnectivity();
 
   const [threads, setThreads] = useState<ForumThread[]>([]);
+  // True while the visible threads came from the offline cache, not the API.
+  const [isFromCache, setIsFromCache] = useState(false);
   const [categories, setCategories] = useState<ForumCategory[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filters, setFilters] = useState<ForumFilters>({
@@ -127,13 +132,37 @@ export function useForumThreads(options: UseForumThreadsOptions = {}) {
         );
         setTotal(result.total);
         setHasMore(result.hasMore);
+        setIsFromCache(false);
+        // Page 1 is the offline snapshot: keep it fresh for the 15-minute TTL.
+        if (page === 1) {
+          void writeThreadCache(result.threads);
+        }
         setIsLoading(false);
         setIsRefreshing(false);
         isFetchingRef.current = false;
       })
-      .catch((cause: unknown) => {
+      .catch(async (cause: unknown) => {
         if (!active) {
           return;
+        }
+        // Offline read mode: fall back to the cached first page when the live
+        // request fails and the cache is still within its TTL.
+        if (page === 1) {
+          const cached = await readThreadCache();
+          if (!active) {
+            return;
+          }
+          if (cached) {
+            setThreads(cached.threads);
+            setTotal(cached.threads.length);
+            setHasMore(false);
+            setIsFromCache(true);
+            setError(null);
+            setIsLoading(false);
+            setIsRefreshing(false);
+            isFetchingRef.current = false;
+            return;
+          }
         }
         setError(toErrorMessage(cause));
         setIsLoading(false);
@@ -203,6 +232,8 @@ export function useForumThreads(options: UseForumThreadsOptions = {}) {
     hasError: error !== null,
     error,
     isEmpty: !isLoading && error === null && threads.length === 0,
+    isOffline,
+    isFromCache,
     threshold,
     setCategoryId,
     setTags,

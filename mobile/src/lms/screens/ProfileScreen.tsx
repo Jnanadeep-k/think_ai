@@ -62,7 +62,7 @@ export function LearnerProfileScreen({
                 <AppButton
                   title="Open certificate"
                   onPress={() =>
-                    navigation.navigate("Certificate", { certificateId: c.id })
+                    navigation.navigate("LmsCertificate", { certificateId: c.id })
                   }
                 />
               </Card>

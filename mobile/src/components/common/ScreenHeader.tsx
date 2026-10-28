@@ -18,7 +18,9 @@ export function ScreenHeader({
   return (
     <View style={styles.header} testID={testID}>
       <View style={styles.headerText}>
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>
+          {title}
+        </Text>
         {subtitle ? (
           <Text style={styles.headerSubtitle}>{subtitle}</Text>
         ) : null}
@@ -38,7 +40,12 @@ export function InlineSpinner({
   testID = 'inline-spinner',
 }: InlineSpinnerProps) {
   return (
-    <View style={styles.inlineSpinner} testID={testID}>
+    <View
+      accessibilityLabel={label}
+      accessibilityLiveRegion="polite"
+      accessible
+      style={styles.inlineSpinner}
+      testID={testID}>
       <ActivityIndicator color={palette.brand} size="small" />
       <Text style={styles.inlineSpinnerLabel}>{label}</Text>
     </View>

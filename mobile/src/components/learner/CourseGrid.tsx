@@ -16,6 +16,8 @@ export interface CourseGridProps {
   maxColumns?: number;
   onSelect?: (course: Course) => void;
   testID?: string;
+  /** Stable id for the first card, used by the E2E journey. */
+  firstCardTestID?: string;
 }
 
 /**
@@ -31,6 +33,7 @@ export function CourseGrid({
   maxColumns = 4,
   onSelect,
   testID = 'course-grid',
+  firstCardTestID,
 }: CourseGridProps) {
   const columns = calculateColumns(width, minColumnWidth, gutter, maxColumns);
   const columnWidth = calculateColumnWidth(width, columns, gutter);
@@ -47,7 +50,7 @@ export function CourseGrid({
     <View style={styles.grid} testID={testID}>
       {rows.map((row, rowIndex) => (
         <View key={rowIndex} style={styles.row} testID={`${testID}-row-${rowIndex}`}>
-          {row.map((course) => (
+          {row.map((course, columnIndex) => (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={course.title}
@@ -58,7 +61,11 @@ export function CourseGrid({
                 styles.card,
                 { width: columnWidth, marginRight: gutter },
               ]}
-              testID={`${testID}-card-${course.id}`}>
+              testID={
+                rowIndex === 0 && columnIndex === 0 && firstCardTestID
+                  ? firstCardTestID
+                  : `${testID}-card-${course.id}`
+              }>
               <Image
                 accessibilityIgnoresInvertColors
                 source={{ uri: course.thumbnailUrl }}

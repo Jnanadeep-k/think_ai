@@ -53,7 +53,10 @@ export function SortDropdown({
           onPress={() => setIsOpen(false)}
           style={styles.backdrop}
           testID={`${testID}-backdrop`}>
-          <View style={styles.menu}>
+          <View
+            accessibilityRole="menu"
+            accessibilityViewIsModal
+            style={styles.menu}>
             {FORUM_SORT_OPTIONS.map((option) => {
               const isSelected = option.key === value;
               return (

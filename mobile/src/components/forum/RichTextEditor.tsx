@@ -11,7 +11,14 @@ import {
 } from 'react-native';
 
 import { useApiClient } from '@/hooks/useApiClient';
-import { palette, radii, SEARCH_DEBOUNCE_MS, spacing, typography } from '@/theme/tokens';
+import {
+  hitSlop,
+  palette,
+  radii,
+  SEARCH_DEBOUNCE_MS,
+  spacing,
+  typography,
+} from '@/theme/tokens';
 import type { MentionUser } from '@/types/community';
 import { MarkdownPreview } from './MarkdownPreview';
 import { MentionAutocomplete, detectMention } from './MentionAutocomplete';
@@ -170,6 +177,7 @@ export function RichTextEditor({
             <Pressable
               accessibilityLabel={button.accessibilityLabel}
               accessibilityRole="button"
+              hitSlop={hitSlop}
               key={button.key}
               onPress={() => {
                 if (button.key === 'link') {
@@ -229,7 +237,10 @@ export function RichTextEditor({
       <View style={styles.footerRow}>
         {previewToggle ? (
           <Pressable
+            accessibilityLabel={isPreview ? 'Back to editing' : 'Preview'}
             accessibilityRole="button"
+            accessibilityState={{ selected: isPreview }}
+            hitSlop={hitSlop}
             onPress={handleTogglePreview}
             style={({ pressed }) => [styles.toggle, pressed && styles.toolPressed]}
             testID={`${testID}-toggle-preview`}>
@@ -271,8 +282,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   toolButton: {
-    minWidth: 40,
-    minHeight: 36,
+    minWidth: 44,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: palette.surfaceMuted,
@@ -321,7 +332,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   toggle: {
-    minHeight: 32,
+    minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: spacing.xs,
   },

@@ -20,6 +20,7 @@ export function SeverityBadge({
   return (
     <View
       accessibilityLabel={`Severity ${SEVERITY_LABELS[severity]}`}
+      accessible
       style={[
         styles.badge,
         severity === 'high' && styles.high,

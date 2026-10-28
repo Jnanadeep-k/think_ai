@@ -72,7 +72,7 @@ export function AssessmentResultsScreen({
               <AppButton
                 title="View certificate"
                 onPress={() =>
-                  navigation.navigate("Certificate", {
+                  navigation.navigate("LmsCertificate", {
                     certificateId: result.certificateId!,
                   })
                 }
@@ -84,7 +84,7 @@ export function AssessmentResultsScreen({
                   void lmsApi
                     .generate(result.enrollmentId)
                     .then((c) =>
-                      navigation.navigate("Certificate", {
+                      navigation.navigate("LmsCertificate", {
                         certificateId: c.id,
                       }),
                     )

@@ -13,28 +13,46 @@ import type {
   PaymentIntent,
 } from '@/types/community';
 
+/** Non-sensitive checkout fields restored after a declined payment. */
+export interface CheckoutFormSnapshot {
+  [key: string]: unknown;
+  planId?: string;
+  discountCode?: string;
+  costCenter?: string;
+  cardNumber?: string;
+  cardExpiry?: string;
+  cardName?: string;
+}
+
 /**
- * Page 10 — Checkout data source.
+ * Page 10 - Checkout data source.
  *
  * Plans come from `GET /api/courses`, discount validation from
  * `POST /api/v1/payments/validate-discount`, and payment runs through
  * `createPaymentIntent` (cross-team endpoint, degrades to a deferred intent)
  * followed by the supported `POST /api/v1/payments/confirm`.
  */
-export function useCheckout(initialCourseId?: string) {
+export function useCheckout(
+  initialCourseId?: string,
+  initialForm?: CheckoutFormSnapshot
+) {
   const client = useApiClient();
   const session = useSession();
 
   const [plans, setPlans] = useState<CheckoutPlan[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState('');
+  const [selectedPlanId, setSelectedPlanId] = useState(
+    initialForm?.planId ?? ''
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [discountCode, setDiscountCode] = useState('');
+  const [discountCode, setDiscountCode] = useState(
+    initialForm?.discountCode ?? ''
+  );
   const [discount, setDiscount] = useState<DiscountValidation | null>(null);
   const [isCheckingDiscount, setIsCheckingDiscount] = useState(false);
 
-  const [costCenter, setCostCenter] = useState('');
+  const [costCenter, setCostCenter] = useState(initialForm?.costCenter ?? '');
   const [isPaying, setIsPaying] = useState(false);
   const [intent, setIntent] = useState<PaymentIntent | null>(null);
   const [paymentResult, setPaymentResult] = useState<PaymentConfirmation | null>(null);

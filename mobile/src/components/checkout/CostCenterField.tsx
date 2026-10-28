@@ -44,7 +44,10 @@ export function CostCenterField({
         discount codes.
       </Text>
       {errorMessage ? (
-        <Text style={styles.error} testID={`${testID}-error`}>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={styles.error}
+          testID={`${testID}-error`}>
           {errorMessage}
         </Text>
       ) : null}

@@ -53,7 +53,7 @@ test("results render actual score, verdict, answer explanations, flags and condi
   fireEvent.press(view.getByText("Retake assessment"));
   expect(navigation.replace).toHaveBeenCalledWith("AssessmentTaking", { assessmentId: 2, enrollmentId: 3 });
   fireEvent.press(view.getByText("View certificate"));
-  expect(navigation.navigate).toHaveBeenCalledWith("Certificate", { certificateId: 7 });
+  expect(navigation.navigate).toHaveBeenCalledWith("LmsCertificate", { certificateId: 7 });
 });
 test("failed scores hide forbidden retake and certificate actions and render the empty flagged section", async () => {
   (lmsApi.result as jest.Mock).mockResolvedValue(result({ score: 0, percentage: 0, passed: false,
@@ -75,7 +75,7 @@ test("results polling refreshes a grading attempt and stops at a terminal result
   expect(lmsApi.result).toHaveBeenCalledTimes(calls);
 });
 test("certificate metadata and actual PDF preview URL render and PDF download invokes the adapter", async () => {
-  const view = render(<CertificateScreen {...props("Certificate", { certificateId: 7 })} />);
+  const view = render(<CertificateScreen {...props("LmsCertificate", { certificateId: 7 })} />);
   await waitFor(() => expect(view.getByText(certificate.certificateNo)).toBeTruthy());
   expect(view.getByText(certificate.courseName)).toBeTruthy();
   expect(view.getByText(`Issued ${new Date(certificate.issuedAt).toLocaleDateString()}`)).toBeTruthy();
@@ -86,7 +86,7 @@ test("certificate metadata and actual PDF preview URL render and PDF download in
   await waitFor(() => expect(shareCertificatePdf).toHaveBeenCalledWith(certificate));
 });
 test("PNG action generates an image before sharing and displays capture failures", async () => {
-  const view = render(<CertificateScreen {...props("Certificate", { certificateId: 7 })} />);
+  const view = render(<CertificateScreen {...props("LmsCertificate", { certificateId: 7 })} />);
   await waitFor(() => expect(view.getByText(certificate.certificateNo)).toBeTruthy());
   fireEvent.press(view.getByText("Share PNG preview"));
   await waitFor(() => expect(shareCertificatePng).toHaveBeenCalledWith("file:///generated-preview.png"));

@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
 import type { ForumCategory } from '@/types';
 
 export interface CreatePostModalProps {
@@ -87,12 +87,15 @@ export function CreatePostModal({
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.sheetWrap}>
-          <View style={styles.sheet} testID={testID}>
+          <View accessibilityViewIsModal style={styles.sheet} testID={testID}>
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>New thread</Text>
+              <Text accessibilityRole="header" style={styles.headerTitle}>
+                New thread
+              </Text>
               <Pressable
                 accessibilityLabel="Close"
                 accessibilityRole="button"
+                hitSlop={hitSlop}
                 onPress={onClose}
                 testID={`${testID}-close`}>
                 <Text style={styles.close}>✕</Text>
@@ -132,8 +135,10 @@ export function CreatePostModal({
                   const isSelected = category.id === categoryId;
                   return (
                     <Pressable
+                      accessibilityLabel={category.name}
                       accessibilityRole="radio"
                       accessibilityState={{ selected: isSelected }}
+                      hitSlop={hitSlop}
                       key={category.id}
                       onPress={() => setCategoryId(category.id)}
                       style={[styles.chip, isSelected && styles.chipSelected]}
@@ -156,8 +161,10 @@ export function CreatePostModal({
                   const isSelected = tags.includes(tag);
                   return (
                     <Pressable
+                      accessibilityLabel={tag}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: isSelected }}
+                      hitSlop={hitSlop}
                       key={tag}
                       onPress={() => toggleTag(tag)}
                       style={[styles.chip, isSelected && styles.chipSelected]}
@@ -175,12 +182,18 @@ export function CreatePostModal({
               </View>
 
               {validationError ? (
-                <Text style={styles.error} testID={`${testID}-validation-error`}>
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={styles.error}
+                  testID={`${testID}-validation-error`}>
                   {validationError}
                 </Text>
               ) : null}
               {errorMessage ? (
-                <Text style={styles.error} testID={`${testID}-error`}>
+                <Text
+                  accessibilityLiveRegion="assertive"
+                  style={styles.error}
+                  testID={`${testID}-error`}>
                   {errorMessage}
                 </Text>
               ) : null}

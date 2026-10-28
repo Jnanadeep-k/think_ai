@@ -3,13 +3,14 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 /** Route + param map for the five assigned pages. */
 export type RootStackParamList = {
   SignIn: undefined;
+  Login: undefined;
   AdminHome: undefined;
   Account: undefined;
   LmsHome: undefined;
   CoursePlayer: { courseId: number; lessonId?: number };
   AssessmentTaking: { assessmentId: number; enrollmentId: number };
   AssessmentResults: { assessmentId: number; attemptId: number };
-  Certificate: { certificateId: number };
+  LmsCertificate: { certificateId: number };
   Analytics: undefined;
   CodePlayground: { entry?: import("@/lms/types").HistoryEntry } | undefined;
   PlaygroundHistory: undefined;
@@ -26,7 +27,30 @@ export type RootStackParamList = {
   CreatePost: undefined;
   Bookmarks: undefined;
   Moderation: undefined;
-  Checkout: { courseId?: string } | undefined;
+  Checkout: { courseId?: string; formValues?: Record<string, unknown> } | undefined;
+  // Day 3 — Manjunath assigned pages.
+  PaymentSuccess:
+    | {
+        paymentId?: string;
+        payment?: unknown;
+        formValues?: Record<string, unknown>;
+      }
+    | undefined;
+  PaymentFailed:
+    | {
+        reason?: 'declined' | 'insufficient_funds' | 'expired' | 'network' | 'unknown';
+        errorCode?: string;
+        message?: string;
+        preserve?: boolean;
+        formValues?: Record<string, unknown>;
+      }
+    | undefined;
+  NotificationPreferences: undefined;
+  // Cross-module learning journey (E2E).
+  VideoPlayer: { courseId: string; lessonId?: string };
+  Assessment: { assessmentId: string };
+  Results: { assessmentId: string; score: number; passed: boolean };
+  Certificate: { courseId: string };
 };
 
 export type ScreenProps<RouteName extends keyof RootStackParamList> =

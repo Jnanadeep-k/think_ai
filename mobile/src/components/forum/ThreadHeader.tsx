@@ -52,7 +52,10 @@ export function ThreadHeader({
         />
       </View>
 
-      <Text style={styles.title} testID={`${testID}-title`}>
+      <Text
+        accessibilityRole="header"
+        style={styles.title}
+        testID={`${testID}-title`}>
         {thread.title}
       </Text>
 

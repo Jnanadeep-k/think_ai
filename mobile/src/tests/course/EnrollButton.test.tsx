@@ -40,6 +40,7 @@ describe('EnrollButton', () => {
     expect(screen.getByTestId('enroll-button-label')).toHaveTextContent('Enrolling…');
     expect(screen.getByTestId('enroll-button').props.accessibilityState).toEqual({
       disabled: true,
+      busy: true,
     });
 
     fireEvent.press(screen.getByTestId('enroll-button'));

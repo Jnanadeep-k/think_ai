@@ -17,6 +17,7 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <View
+      accessibilityLiveRegion="assertive"
       accessibilityRole="alert"
       style={styles.container}
       testID={testID}>

@@ -86,7 +86,7 @@ export function AccountScreen() {
     </Screen>
   );
 }
-export function SignInScreen({ navigation }: ScreenProps<"SignIn">) {
+export function SignInScreen({ navigation }: ScreenProps<"SignIn" | "Login">) {
   const { session, account } = useLms();
   return (
     <Screen title="Sign in">
