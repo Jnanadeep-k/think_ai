@@ -30,7 +30,7 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: backend
-        run: npm Install --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Backend lint
         working-directory: backend
@@ -57,7 +57,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm Install --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Frontend CI lint
         working-directory: frontend
