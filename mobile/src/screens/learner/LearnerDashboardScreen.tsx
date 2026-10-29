@@ -1,3 +1,4 @@
+import {LmsSyncIndicator} from '@/lms/SyncIndicator';
 import { useCallback } from 'react';
 import {
   Pressable,
@@ -87,6 +88,8 @@ export function LearnerDashboardScreen({
           subtitle={`${completedCount} completed · ${enrollments.length - completedCount} in progress`}
           title="My Learning"
         />
+
+        <LmsSyncIndicator/>
 
         {showSkeleton ? (
           <View style={styles.section}>
