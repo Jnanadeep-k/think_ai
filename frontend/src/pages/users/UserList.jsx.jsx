@@ -18,17 +18,17 @@ function UserList() {
   }, [search]);
 
   const fetchUsers = async (searchText = "") => {
-    setLoading(true);
+  setLoading(true);
+  try {
+    const response = await getUsers(searchText);
+    setUsers(response.data.data || []);
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to load users");
+  } finally {
+    setLoading(false);
+  }
 
-    try {
-      const response = await getUsers(searchText);
-      setUsers(response.data.data || []);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleDelete = async (id) => {
