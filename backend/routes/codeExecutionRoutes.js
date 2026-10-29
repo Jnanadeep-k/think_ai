@@ -15,6 +15,13 @@ const {
     validateCodeExecution
 } = require("../validations/codeExecutionValidation");
 
+const { practiceRun } = require("../controllers/codeExecutionController");
+const { authenticateToken, authorizeRoles } = require("../middleware/lmsLegacyAccess");
+const { requireOwnedCodeAttempt, redactLearnerAnswers } = require("../middleware/lmsLegacyOwnership");
+const { internalCallbackAuth } = require("../middleware/internalCallbackAuth");
+const learnerOnly = [authenticateToken, authorizeRoles("Learner")];
+router.post("/practice-run", ...learnerOnly, practiceRun);
+
 
 // ----------------------------------------------------
 // Swagger
@@ -74,8 +81,100 @@ const {
  */
 router.post(
     "/execute",
+    "/run",
+    ...learnerOnly,
+    requireOwnedCodeAttempt({ publicTestCase: true }),
+    redactLearnerAnswers,
     validateCodeExecution,
     executeCode
+);
+
+
+/**
+ * @swagger
+ * /api/code/submit:
+ *   post:
+ *     summary: Submit coding solution
+ *     description: |
+ *       Submits a coding solution in GeeksforGeeks style.
+ *
+ *       The student's code is executed against every
+ *       test case belonging to the coding question.
+ *
+ *       Both public and hidden test cases are executed.
+ *
+ *       Hidden test case input and expected output
+ *       are never returned to the student.
+ *
+ *       Marks are calculated after all Judge0
+ *       executions are completed.
+ *
+ *     tags: [Code Execution]
+ *
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *
+ *             required:
+ *               - submissionId
+ *               - questionId
+ *               - language
+ *               - code
+ *
+ *             properties:
+ *
+ *               submissionId:
+ *                 type: integer
+ *                 example: 6
+ *                 description: Assessment submission ID
+ *
+ *               questionId:
+ *                 type: integer
+ *                 example: 23
+ *                 description: Coding question ID
+ *
+ *               language:
+ *                 type: string
+ *                 example: python
+ *                 description: Programming language
+ *
+ *               code:
+ *                 type: string
+ *                 example: |
+ *                   n = int(input())
+ *                   arr = list(map(int, input().split()))
+ *                   print(max(arr))
+ *                 description: Student source code
+ *
+ *     responses:
+ *
+ *       202:
+ *         description: Code submitted and all test cases are being evaluated
+ *
+ *       400:
+ *         description: Invalid coding submission
+ *
+ *       404:
+ *         description: Assessment submission, question, or test case not found
+ *
+ *       502:
+ *         description: Judge0 execution service failed
+ *
+ *       503:
+ *         description: Judge0 is not configured
+ *
+ *       500:
+ *         description: Code submission service failed
+ */
+router.post(
+    "/submit",
+    ...learnerOnly,
+    requireOwnedCodeAttempt(),
+    redactLearnerAnswers,
+    submitCode
 );
 
 
@@ -132,6 +231,7 @@ router.post(
  */
 router.put(
     "/callback",
+    internalCallbackAuth("judge0"),
     gradingCallback
 );
 
@@ -167,6 +267,9 @@ router.put(
  */
 router.get(
     "/submissions/:submissionId",
+    ...learnerOnly,
+    requireOwnedCodeAttempt({ readOnly: true }),
+    redactLearnerAnswers,
     getAssessmentSubmissionResult
 );
 

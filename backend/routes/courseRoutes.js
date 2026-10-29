@@ -1,6 +1,8 @@
 const express = require("express");
 
 const router = express.Router();
+const { authenticateToken, authorizeRoles } = require("../middleware/lmsLegacyAccess");
+
 
 const {
     getCourses,
@@ -143,6 +145,15 @@ router.post("/", createCourse);
  *         description: Course updated successfully
  */
 router.put("/:id", updateCourse);
+router.put(
+    "/:id",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateCourseId,
+    validateCourseUpdate,
+    updateCourse
+);
+
 
 /**
  * @swagger
@@ -164,6 +175,13 @@ router.put("/:id", updateCourse);
  *         description: Course not found
  */
 router.delete("/:id", deleteCourse);
+router.delete(
+    "/:id",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateCourseId,
+    deleteCourse
+);
 
 /**
  * @swagger

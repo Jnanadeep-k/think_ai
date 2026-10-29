@@ -45,6 +45,10 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(morgan("dev", {
+    // Local signed PDF capabilities must not be recorded in URL logs.
+    skip: req => /^\/api\/lms\/certificates\/\d+\/pdf(?:\?|$)/.test(req.originalUrl)
+}));
 
 // Mount Demo Routes
 app.use('/api/demo', demoRoutes);
@@ -82,6 +86,11 @@ const swaggerOptions = {
 
 const swaggerSpec =
     swaggerJsdoc(swaggerOptions);
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const patanSpec = require('./lms/openapi.json');
+Object.assign(swaggerSpec.paths, patanSpec.paths);
+swaggerSpec.components.schemas = {...swaggerSpec.components.schemas, ...patanSpec.components.schemas};
+swaggerSpec.servers = [{url:'/'}];
 
 app.use(
     "/api-docs",
@@ -98,6 +107,21 @@ app.get("/", (req, res) => {
 });
 
 // API Routes
+// ============================================================
+// API ROUTES
+// ============================================================
+
+// Patan LMS routes must be mounted before legacy resource routes.
+require("./lms").installLms(app);
+
+app.use("/api/auth", authRoutes);
+app.use("/api/sessions", sessionRoutes);
+app.use("/api/admin", adminUsersRoutes);
+
+app.use("/api/admin", adminCodingQuestionRoutes);
+
+app.use("/api/roles", roleRoutes);
+
 app.use("/api/courses", courseRoutes);
 app.use("/api/batches", batchRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
@@ -178,4 +202,8 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+// ============================================================
+// EXPORT
+// ============================================================
+
 module.exports = app;

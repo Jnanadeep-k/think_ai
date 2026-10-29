@@ -1,6 +1,7 @@
 const express = require("express");
 
 const router = express.Router();
+const { authenticateToken, authorizeRoles } = require("../middleware/lmsLegacyAccess");
 
 const {
     getBatches,
@@ -50,6 +51,13 @@ router.get("/", getBatches);
  *         description: Batch not found
  */
 router.get("/:id", getBatchById);
+router.post(
+    "/auto-allocate",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    autoAllocateStudent
+);
+
 
 /**
  * @swagger
@@ -97,6 +105,45 @@ router.get("/:id", getBatchById);
  *     responses:
  *       201:
  *         description: Batch created successfully
+ *       400:
+ *         description: Batch validation failed
+ *       500:
+ *         description: Internal server error
+ */
+router.post(
+    "/",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateBatchCreate,
+    createBatch
+);
+
+
+/**
+ * @swagger
+ * /api/batches/{id}:
+ *   get:
+ *     summary: Get batch by ID
+ *     tags: [Batches]
+ *
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         example: 1
+ *
+ *     responses:
+ *       200:
+ *         description: Batch found
+ *       400:
+ *         description: Invalid batch ID
+ *       404:
+ *         description: Batch not found
+ *       500:
+ *         description: Internal server error
  */
 router.post("/", createBatch);
 
@@ -150,6 +197,15 @@ router.post("/", createBatch);
  *         description: Batch not found
  */
 router.put("/:id", updateBatch);
+router.put(
+    "/:id",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateBatchId,
+    validateBatchUpdate,
+    updateBatch
+);
+
 
 /**
  * @swagger
@@ -171,6 +227,14 @@ router.put("/:id", updateBatch);
  *         description: Batch not found
  */
 router.delete("/:id", deleteBatch);
+router.delete(
+    "/:id",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateBatchId,
+    deleteBatch
+);
+
 
 /**
  * @swagger

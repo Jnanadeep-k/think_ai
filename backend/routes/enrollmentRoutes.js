@@ -1,6 +1,7 @@
 const express = require("express");
 
 const router = express.Router();
+const { authenticateToken, authorizeRoles } = require("../middleware/lmsLegacyAccess");
 
 const {
     getEnrollments,
@@ -84,6 +85,84 @@ router.get("/:id", getEnrollmentById);
  *         description: Enrollment created successfully
  */
 router.post("/", createEnrollment);
+router.post(
+    "/",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateEnrollmentCreate,
+    createEnrollment
+);
+
+
+/**
+ * @swagger
+ * /api/enrollments/{id}/course-access:
+ *   patch:
+ *     summary: Unlock course access
+ *     description: Unlocks course access after successful payment verification.
+ *     tags: [Enrollments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: Enrollment ID
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         example: 17
+ *     responses:
+ *       200:
+ *         description: Course access unlocked successfully
+ *       400:
+ *         description: Invalid enrollment ID
+ *       404:
+ *         description: Enrollment not found
+ *       500:
+ *         description: Failed to unlock course access
+ */
+router.patch(
+    "/:id/course-access",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateEnrollmentId,
+    (req, res) => res.status(503).json({
+        success: false,
+        code: "PAYMENT_WEBHOOK_REQUIRED",
+        message: "Course access can only be unlocked by the approved payment webhook."
+    })
+);
+
+
+/**
+ * @swagger
+ * /api/enrollments/{id}:
+ *   get:
+ *     summary: Get enrollment by ID
+ *     tags: [Enrollments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Enrollment details retrieved successfully
+ *       400:
+ *         description: Invalid enrollment ID
+ *       404:
+ *         description: Enrollment not found
+ *       500:
+ *         description: Failed to retrieve enrollment
+ */
+router.get(
+    "/:id",
+    validateEnrollmentId,
+    getEnrollmentById
+);
+
 
 /**
  * @swagger
@@ -124,6 +203,15 @@ router.post("/", createEnrollment);
  *         description: Enrollment not found
  */
 router.put("/:id", updateEnrollment);
+router.put(
+    "/:id",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateEnrollmentId,
+    validateEnrollmentUpdate,
+    updateEnrollment
+);
+
 
 /**
  * @swagger
@@ -149,5 +237,13 @@ router.post("/sessions", createSession);
 router.get("/sessions/:id", getSessionById);
 router.put("/sessions/:id", updateSession);
 router.delete("/sessions/:id", deleteSession);
+router.delete(
+    "/:id",
+    authenticateToken,
+    authorizeRoles('ADMIN'),
+    validateEnrollmentId,
+    deleteEnrollment
+);
+
 
 module.exports = router;

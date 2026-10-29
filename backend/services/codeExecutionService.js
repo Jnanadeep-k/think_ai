@@ -290,6 +290,41 @@ const executeCode = async ({
             timeoutMs
         );
 
+    try {
+
+        const options = {
+
+            method,
+
+            headers: {
+
+                Accept:
+                    "application/json",
+
+                "Content-Type":
+                    "application/json"
+            },
+
+            signal:
+                controller.signal
+        };
+
+        const authToken = process.env.JUDGE0_AUTH_TOKEN;
+        if (authToken && authToken.trim()) {
+            options.headers["X-Auth-Token"] = authToken.trim();
+        }
+
+        if (body !== null) {
+
+            options.body =
+                JSON.stringify(body);
+        }
+
+        const response =
+            await fetch(
+                url,
+                options
+            );
 
     let response;
 
@@ -326,6 +361,25 @@ const executeCode = async ({
             "Judge0 connection error:",
             error
         );
+        const data = await response.json();
+
+        // Decode only responses requested in Base64 format.
+        if (new URL(url).searchParams.get("base64_encoded") === "true") {
+            const textFields = [
+                "source_code", "stdin", "expected_output",
+                "stdout", "stderr", "compile_output", "message"
+            ];
+
+            for (const field of textFields) {
+                if (typeof data[field] === "string") {
+                    data[field] = Buffer.from(
+                        data[field], "base64"
+                    ).toString("utf8");
+                }
+            }
+        }
+
+        return data;
 
 
         if (
@@ -373,6 +427,14 @@ const executeCode = async ({
         } catch {
 
             try {
+                url:
+                    `${judge0Url}/submissions/` +
+                    `${encodeURIComponent(token)}` +
+                    `?base64_encoded=true`,
+
+                method:
+                    "GET"
+            });
 
                 errorMessage =
                     await response.text();
@@ -406,6 +468,24 @@ const executeCode = async ({
             await response.json();
 
     } catch (error) {
+        source_code:
+            Buffer.from(code, "utf8").toString("base64"),
+
+        stdin:
+            Buffer.from(stdin || "", "utf8").toString("base64"),
+
+        cpu_time_limit:
+            getNumberEnv(
+                "JUDGE0_CPU_TIME_LIMIT",
+                DEFAULTS.CPU_TIME_LIMIT
+            ),
+
+        wall_time_limit:
+            getNumberEnv(
+                "JUDGE0_WALL_TIME_LIMIT",
+                DEFAULTS.WALL_TIME_LIMIT
+            )
+    };
 
         console.error(
             "Invalid Judge0 response:",
@@ -417,6 +497,19 @@ const executeCode = async ({
         );
     }
 
+    const result =
+        await judge0Request({
+
+            url:
+                `${judge0Url}/submissions` +
+                `?base64_encoded=true` +
+                `&wait=false`,
+
+            method:
+                "POST",
+
+            body
+        });
 
     /*
      * Judge0 must return a token.
