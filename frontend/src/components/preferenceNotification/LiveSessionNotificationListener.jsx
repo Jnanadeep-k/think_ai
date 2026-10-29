@@ -1,9 +1,28 @@
+import { selectUser } from '../../features/auth/authSlice';
+import { useLiveSessionNotifications } from '../../hooks/useLiveSessionNotifications';
+
+/**
+ * Global provider for the Live Session Notification Center.
+ *
+ * Opens one socket per mounted instance (i.e. per browser tab). Because each
+ * tab connects independently, a single `session:started` / `session:ended`
+ * event from the backend reaches every open tab in real time.
+ *
+ * Mount next to the routed pages (see LearnerLayout).
+ */
+function LiveSessionLifecycleListener() {
+  const user = useSelector(selectUser);
+
+  useLiveSessionNotifications({ user });
+
+  return null;
+}
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { notificationReceived, showToast } from '../../features/preferenceNotification/preferenceNotificationSlice';
 import { useForumSocket } from '../../hooks/useForumSocket';
 
-export default function LiveSessionNotificationListener() {
+function ForumLiveSessionListener() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth?.user);
 
@@ -44,4 +63,13 @@ export default function LiveSessionNotificationListener() {
   }, [subscribe, dispatch]);
 
   return null;
+}
+
+export default function LiveSessionNotificationListener() {
+  return (
+    <>
+      <LiveSessionLifecycleListener />
+      <ForumLiveSessionListener />
+    </>
+  );
 }
