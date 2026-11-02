@@ -35,6 +35,8 @@ export const DEEP_LINK_ROUTES: Readonly<Partial<Record<ScreenName, string>>> = {
   MyCourses: 'learner/courses',
   CourseDetail: 'learner/courses/:courseId',
   GlobalSearch: 'search',
+  Wishlist: 'learner/wishlist',
+  Profile: 'learner/profile',
   ForumHome: 'forum',
   ForumThread: 'forum/threads/:threadId',
   CreatePost: 'forum/new',

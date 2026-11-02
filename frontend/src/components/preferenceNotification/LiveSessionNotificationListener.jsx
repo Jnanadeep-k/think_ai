@@ -1,6 +1,7 @@
-import { useSelector } from 'react-redux';
-import { selectUser } from '../../features/auth/authSlice';
-import { useLiveSessionNotifications } from '../../hooks/useLiveSessionNotifications';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { notificationReceived, showToast } from '../../features/preferenceNotification/preferenceNotificationSlice';
+import { useForumSocket } from '../../hooks/useForumSocket';
 
 /**
  * Global provider for the Live Session Notification Center.
@@ -11,18 +12,6 @@ import { useLiveSessionNotifications } from '../../hooks/useLiveSessionNotificat
  *
  * Mount next to the routed pages (see LearnerLayout).
  */
-export default function LiveSessionNotificationListener() {
-  const user = useSelector(selectUser);
-
-  useLiveSessionNotifications({ user });
-
-  return null;
-}
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { notificationReceived, showToast } from '../../features/preferenceNotification/preferenceNotificationSlice';
-import { useForumSocket } from '../../hooks/useForumSocket';
-
 export default function LiveSessionNotificationListener() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth?.user);

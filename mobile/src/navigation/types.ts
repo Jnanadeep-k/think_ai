@@ -10,6 +10,8 @@ export type RootStackParamList = {
   MyCourses: { category?: CourseCategoryId } | undefined;
   CourseDetail: { courseId: string; moduleId?: string };
   GlobalSearch: undefined;
+  Wishlist: undefined;
+  Profile: undefined;
   ForumHome: { categoryId?: string; threadId?: string } | undefined;
   // Pages 6–10.
   ForumThread: { threadId: string };

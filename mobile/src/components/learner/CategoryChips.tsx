@@ -1,7 +1,9 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { COURSE_CATEGORIES } from '@/utils/course';
-import { minTouchTarget, palette, radii, spacing, typography } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { minTouchTarget, radii, spacing, typography } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 import type { CourseCategoryId } from '@/types';
 
 export interface CategoryChipsProps {
@@ -19,6 +21,7 @@ export function CategoryChips({
   counts,
   testID = 'category-chips',
 }: CategoryChipsProps) {
+  const styles = useThemedStyles(createStyles);
   const options: { id: CourseCategoryId | 'all'; label: string; icon: string }[] =
     [
       ...(includeAll
@@ -68,7 +71,8 @@ export function CategoryChips({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) =>
+  StyleSheet.create({
   content: {
     gap: spacing.xs,
     paddingHorizontal: spacing.md,

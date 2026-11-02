@@ -1,6 +1,8 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { radii, spacing, typography } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 import type { Course } from '@/types';
 import {
   formatDuration,
@@ -27,6 +29,7 @@ export function CourseRail({
   onSelect,
   testID = 'course-rail',
 }: CourseRailProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <ScrollView
       contentContainerStyle={styles.content}
@@ -76,7 +79,8 @@ export function CourseRail({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) =>
+  StyleSheet.create({
   content: {
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -109,7 +113,7 @@ const styles = StyleSheet.create({
   },
   badgeLabel: {
     ...typography.caption,
-    color: palette.textPrimary,
+    color: '#F1F3F9',
   },
   body: {
     padding: spacing.sm,

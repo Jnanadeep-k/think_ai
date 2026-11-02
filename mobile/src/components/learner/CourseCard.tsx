@@ -1,7 +1,9 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ProgressBar } from '@/components/common';
-import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { hitSlop, radii, spacing, typography } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 import type { Enrollment } from '@/types';
 import { formatRating } from '@/utils/course';
 
@@ -31,6 +33,7 @@ export function CourseCard({
   actionLabel,
   testID = 'course-card',
 }: CourseCardProps) {
+  const styles = useThemedStyles(createStyles);
   const { course } = enrollment;
   const progress = enrollment.progressPercent;
 
@@ -99,7 +102,8 @@ export function CourseCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) =>
+  StyleSheet.create({
   card: {
     borderRadius: radii.lg,
     backgroundColor: palette.surface,
@@ -127,7 +131,7 @@ const styles = StyleSheet.create({
   },
   statusBadgeText: {
     ...typography.caption,
-    color: palette.textPrimary,
+    color: '#F1F3F9',
   },
   body: {
     padding: spacing.md,

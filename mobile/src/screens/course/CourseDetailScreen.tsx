@@ -18,7 +18,7 @@ import { useCourseDetail } from '@/hooks/useCourseDetail';
 import { useEnrollments } from '@/hooks/useEnrollments';
 import { toErrorMessage } from '@/hooks/useAsyncResource';
 import type { ScreenProps } from '@/navigation/types';
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import {radii, spacing, typography} from '@/theme/tokens';
 import type { Enrollment, Lesson } from '@/types';
 import {
   formatDuration,
@@ -27,6 +27,8 @@ import {
   getLearningObjectives,
   getResumeLesson,
 } from '@/utils/course';
+import type { Palette } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 
 /** Keeps the existing 400 ms enrolling transition (and its tests) intact. */
 export const ENROLL_TRANSITION_MS = 400;
@@ -35,6 +37,7 @@ export function CourseDetailScreen({
   route,
   navigation,
 }: ScreenProps<'CourseDetail'>) {
+  const styles = useThemedStyles(createStyles);
   const { courseId, moduleId } = route.params;
   const {
     course,
@@ -304,7 +307,7 @@ export function CourseDetailScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: palette.background,

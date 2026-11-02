@@ -1,6 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
-import { minTouchTarget, palette, radii, spacing, typography } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { minTouchTarget, radii, spacing, typography } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 import type { CourseSortOption } from '@/types';
 import { COURSE_SORT_OPTIONS } from '@/utils/course';
 
@@ -15,6 +17,7 @@ export function SortChips({
   onChange,
   testID = 'sort-chips',
 }: SortChipsProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <ScrollView
       accessibilityLabel="Sort courses"
@@ -42,7 +45,7 @@ export function SortChips({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   content: {
     gap: spacing.xs,
     paddingHorizontal: spacing.md,

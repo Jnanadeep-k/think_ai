@@ -19,10 +19,16 @@ import { CourseGrid } from '@/components/learner/CourseGrid';
 import { FilterTabs } from '@/components/learner/FilterTabs';
 import { SearchBar } from '@/components/learner/SearchBar';
 import { SortChips } from '@/components/learner/SortChips';
+import { LearnerTabBar } from '@/components/learner';
+import type { LearnerTabKey } from '@/components/learner';
+import { LEARNER_TAB_ROUTES } from '@/components/learner/LearnerTabBar';
 import { useCourseSearch } from '@/hooks/useCourseSearch';
 import { useDebouncedValue } from '@/hooks/useAsyncResource';
+import { useWishlist } from '@/hooks/useWishlist';
 import type { ScreenProps } from '@/navigation/types';
-import { SEARCH_DEBOUNCE_MS, palette, spacing } from '@/theme/tokens';
+import { SEARCH_DEBOUNCE_MS, spacing } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 import type {
   CourseCategoryId,
   CourseSortOption,
@@ -37,6 +43,8 @@ export function MyCoursesScreen({
   navigation,
   route,
 }: ScreenProps<'MyCourses'>) {
+  const styles = useThemedStyles(createStyles);
+  const { count: wishlistCount } = useWishlist();
   const initialCategory = route.params?.category ?? 'all';
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<CourseStatusFilter>('all');
@@ -59,6 +67,10 @@ export function MyCoursesScreen({
   const contentWidth = getScreenWidth() - HORIZONTAL_PADDING;
 
   const handleScroll = () => Keyboard.dismiss();
+  const handleTabSelect = useCallback(
+    (key: LearnerTabKey) => navigation.navigate(LEARNER_TAB_ROUTES[key] as never),
+    [navigation]
+  );
 
   const categoryCounts = useMemo(() => {
     const counts: Partial<Record<CourseCategoryId | 'all', number>> = {
@@ -192,11 +204,12 @@ export function MyCoursesScreen({
           </View>
         ) : null}
       </ScrollView>
+      <LearnerTabBar active="explore" onSelect={handleTabSelect} wishlistCount={wishlistCount} />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: palette.background,

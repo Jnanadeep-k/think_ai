@@ -1,3 +1,4 @@
+export { AppearanceToggle } from './AppearanceToggle';
 export { CourseCard } from './CourseCard';
 export type { CourseCardProps } from './CourseCard';
 
@@ -21,3 +22,15 @@ export type { FilterTabsProps } from './FilterTabs';
 
 export { SearchBar } from './SearchBar';
 export type { SearchBarProps } from './SearchBar';
+
+export {
+  LearnerTabBar,
+  LEARNER_TABS,
+  LEARNER_TAB_ROUTES,
+} from './LearnerTabBar';
+export type {
+  LearnerTab,
+  LearnerTabBarProps,
+  LearnerTabKey,
+  LearnerTabRoute,
+} from './LearnerTabBar';

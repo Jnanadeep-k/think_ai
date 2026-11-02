@@ -1,6 +1,9 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { hitSlop, radii, spacing, typography } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeProvider';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 
 export interface SearchBarProps {
   value: string;
@@ -23,6 +26,8 @@ export function SearchBar({
   isSearching = false,
   testID = 'search-bar',
 }: SearchBarProps) {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const showClear = value.length > 0;
 
   const handleClear = () => {
@@ -77,7 +82,8 @@ export function SearchBar({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) =>
+  StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

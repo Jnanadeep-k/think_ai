@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -19,10 +19,17 @@ import { CourseCard } from '@/components/learner/CourseCard';
 import { CourseRail } from '@/components/learner/CourseRail';
 import { SearchBar } from '@/components/learner/SearchBar';
 import { SectionHeader } from '@/components/learner/SectionHeader';
+import { AppearanceToggle, LearnerTabBar } from '@/components/learner';
+import type { LearnerTabKey } from '@/components/learner';
+import { LEARNER_TAB_ROUTES } from '@/components/learner/LearnerTabBar';
 import { useCourseSearch } from '@/hooks/useCourseSearch';
 import { useEnrollments } from '@/hooks/useEnrollments';
+import { useWishlist } from '@/hooks/useWishlist';
 import type { ScreenProps } from '@/navigation/types';
-import { palette, spacing, typography } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeProvider';
+import { spacing, typography } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 import type { Course, CourseCategoryId, Enrollment } from '@/types';
 import {
   COURSE_CATEGORIES,
@@ -33,6 +40,17 @@ import {
 export function LearnerDashboardScreen({
   navigation,
 }: ScreenProps<'LearnerDashboard'>) {
+  const styles = useThemedStyles(createStyles);
+  const { palette, mode } = useTheme();
+  const { count: wishlistCount } = useWishlist();
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <AppearanceToggle compact testID="dashboard-appearance-toggle" />
+      ),
+    });
+  }, [mode, navigation]);
   const {
     enrollments,
     isLoading,
@@ -51,6 +69,10 @@ export function LearnerDashboardScreen({
   });
 
   const [query, setQuery] = useState('');
+  const handleTabSelect = useCallback(
+    (key: LearnerTabKey) => navigation.navigate(LEARNER_TAB_ROUTES[key] as never),
+    [navigation]
+  );
 
   const openCourse = useCallback(
     (enrollment: Enrollment) => {
@@ -270,11 +292,12 @@ export function LearnerDashboardScreen({
           Keep going — a little practice every day compounds.
         </Text>
       </ScrollView>
+      <LearnerTabBar active="home" onSelect={handleTabSelect} wishlistCount={wishlistCount} />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: palette.background,

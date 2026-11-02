@@ -23,6 +23,16 @@ async function pullToRefresh() {
 }
 
 describe('LearnerDashboardScreen', () => {
+  it('places the compact theme selector in the Dashboard header action area', () => {
+    const { navigation } = renderScreen(LearnerDashboardScreen, { name: 'LearnerDashboard' });
+    const options = navigation.setOptions.mock.calls.map(([value]) => value);
+    const headerOptions = options.find((value) => typeof value.headerRight === 'function');
+    expect(headerOptions).toBeDefined();
+    const panel = headerOptions!.headerRight!();
+    expect(panel).toMatchObject({ props: { compact: true, testID: 'dashboard-appearance-toggle' } });
+    expect(screen.queryByTestId('dashboard-appearance-toggle')).toBeNull();
+  });
+
   it('shows a loading skeleton before enrollments arrive', async () => {
     const { client } = buildClient();
     renderScreen(LearnerDashboardScreen, { client, name: 'LearnerDashboard' });

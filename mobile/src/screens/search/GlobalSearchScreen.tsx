@@ -26,13 +26,16 @@ import { useDebouncedValue } from '@/hooks/useAsyncResource';
 import { useGlobalSearch, SEARCH_TAB_LABELS } from '@/hooks/useGlobalSearch';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import type { ScreenProps } from '@/navigation/types';
-import { SEARCH_DEBOUNCE_MS, minTouchTarget, palette, radii, spacing, typography } from '@/theme/tokens';
+import {SEARCH_DEBOUNCE_MS, minTouchTarget, radii, spacing, typography} from '@/theme/tokens';
 import type { CourseCategoryId, SearchResult } from '@/types';
+import type { Palette } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 
 /** Quick-start terms shown before the learner types anything. */
 const POPULAR_SEARCHES = ['react native', 'typescript', 'testing', 'api'] as const;
 
 export function GlobalSearchScreen({ navigation }: ScreenProps<'GlobalSearch'>) {
+  const styles = useThemedStyles(createStyles);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const isDebouncing = query !== debouncedQuery;
@@ -216,7 +219,7 @@ export function GlobalSearchScreen({ navigation }: ScreenProps<'GlobalSearch'>) 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: palette.background,

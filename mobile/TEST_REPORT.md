@@ -388,3 +388,17 @@ on top of the existing data layer. No Udemy assets, trademarks or SDKs are used.
 Known follow-up: when the Android toolchain is available, repeat the 375 px and
 390 px pass on an emulator/device and capture screenshots for the screenshot
 artifact set. This does not block the module handover.
+
+## Appearance controls and app-wide theme pass — 2026-11-02
+
+- Dashboard now has a compact, right-aligned Appearance segmented control with Light and Dark options.
+- Profile exposes an expandable Appearance row; selecting it reveals the same Light/Dark choices and selected state. Theme selection persists through the existing `ThemeProvider` preference.
+- Updated screen and shared component styles to use the active palette, including learner, course, search, forum, moderation, checkout, auth, learning and onboarding surfaces. The status bar switches foreground style with the selected theme.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| TypeScript | `npm run typecheck` | Passed, 0 errors |
+| Lint | `npm run lint` | Passed, 0 warnings |
+| Jest | `npm test -- --runInBand --silent` | **506 passed, 0 failed** across 54 suites |
+| Appearance screen coverage | Profile + dashboard suites | Passed; Profile expands the setting and Home switches both modes |
+| Android export | `npx expo export --platform android` | Passed; bundled 877 modules, emitted a 2.37 MB Hermes bundle to `dist/` |

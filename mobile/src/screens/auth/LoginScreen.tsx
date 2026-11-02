@@ -11,7 +11,10 @@ import {
 
 import { signIn } from '@/api/session';
 import type { ScreenProps } from '@/navigation/types';
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import {radii, spacing, typography} from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
+import { useTheme } from '@/theme/ThemeProvider';
 
 /**
  * Minimal sign-in for the deep-link auth gate and the E2E journey. The forum
@@ -19,6 +22,8 @@ import { palette, radii, spacing, typography } from '@/theme/tokens';
  * verified server-side in the LMS; this screen only stores the identity.
  */
 export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
+  const styles = useThemedStyles(createStyles);
+  const { palette } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +99,7 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: palette.background,

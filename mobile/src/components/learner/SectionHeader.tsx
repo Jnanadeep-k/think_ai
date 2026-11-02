@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { hitSlop, palette, spacing, typography } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { hitSlop, spacing, typography } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 
 export interface SectionHeaderProps {
   title: string;
@@ -18,6 +20,7 @@ export function SectionHeader({
   onAction,
   testID = 'section-header',
 }: SectionHeaderProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.row} testID={testID}>
       <View style={styles.text}>
@@ -41,7 +44,8 @@ export function SectionHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) =>
+  StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',

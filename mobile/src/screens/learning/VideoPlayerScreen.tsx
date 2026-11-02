@@ -18,8 +18,11 @@ import { useCourseDetail } from '@/hooks/useCourseDetail';
 import { useEnrollments } from '@/hooks/useEnrollments';
 import { toErrorMessage } from '@/hooks/useAsyncResource';
 import type { ScreenProps } from '@/navigation/types';
-import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
+import {hitSlop, radii, spacing, typography} from '@/theme/tokens';
 import type { Lesson } from '@/types';
+import type { Palette } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
+import { useTheme } from '@/theme/ThemeProvider';
 import {
   findLesson,
   findLessonModule,
@@ -32,6 +35,8 @@ export function VideoPlayerScreen({
   navigation,
   route,
 }: ScreenProps<'VideoPlayer'>) {
+  const styles = useThemedStyles(createStyles);
+  const { palette } = useTheme();
   const { courseId } = route.params;
   const {
     course,
@@ -374,7 +379,7 @@ export function VideoPlayerScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: palette.background,

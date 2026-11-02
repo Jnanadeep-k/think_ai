@@ -18,9 +18,16 @@ import { CategoryChips } from '@/components/learner/CategoryChips';
 import { CourseCard } from '@/components/learner/CourseCard';
 import { FilterTabs } from '@/components/learner/FilterTabs';
 import { SearchBar } from '@/components/learner/SearchBar';
+import { LearnerTabBar } from '@/components/learner';
+import type { LearnerTabKey } from '@/components/learner';
+import { LEARNER_TAB_ROUTES } from '@/components/learner/LearnerTabBar';
 import { useEnrollments } from '@/hooks/useEnrollments';
+import { useWishlist } from '@/hooks/useWishlist';
 import type { ScreenProps } from '@/navigation/types';
-import { palette, spacing, typography } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeProvider';
+import { spacing, typography } from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
 import type {
   CourseCategoryId,
   CourseStatusFilter,
@@ -35,6 +42,9 @@ import {
 export function MyLearningScreen({
   navigation,
 }: ScreenProps<'MyLearning'>) {
+  const styles = useThemedStyles(createStyles);
+  const { palette } = useTheme();
+  const { count: wishlistCount } = useWishlist();
   const {
     enrollments,
     isLoading,
@@ -48,6 +58,10 @@ export function MyLearningScreen({
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<CourseStatusFilter>('all');
   const [category, setCategory] = useState<CourseCategoryId | 'all'>('all');
+  const handleTabSelect = useCallback(
+    (key: LearnerTabKey) => navigation.navigate(LEARNER_TAB_ROUTES[key] as never),
+    [navigation]
+  );
 
   const openCourse = useCallback(
     (enrollment: Enrollment) => {
@@ -251,11 +265,12 @@ export function MyLearningScreen({
           </Text>
         ) : null}
       </ScrollView>
+      <LearnerTabBar active="learning" onSelect={handleTabSelect} wishlistCount={wishlistCount} />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: palette.background,
