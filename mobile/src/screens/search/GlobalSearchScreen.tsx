@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   FlatList,
   Keyboard,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -20,12 +21,16 @@ import {
   ResultTabs,
   SearchInput,
 } from '@/components/search';
+import { CategoryChips } from '@/components/learner/CategoryChips';
 import { useDebouncedValue } from '@/hooks/useAsyncResource';
 import { useGlobalSearch, SEARCH_TAB_LABELS } from '@/hooks/useGlobalSearch';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import type { ScreenProps } from '@/navigation/types';
-import { SEARCH_DEBOUNCE_MS, palette, spacing, typography } from '@/theme/tokens';
-import type { SearchResult } from '@/types';
+import { SEARCH_DEBOUNCE_MS, minTouchTarget, palette, radii, spacing, typography } from '@/theme/tokens';
+import type { CourseCategoryId, SearchResult } from '@/types';
+
+/** Quick-start terms shown before the learner types anything. */
+const POPULAR_SEARCHES = ['react native', 'typescript', 'testing', 'api'] as const;
 
 export function GlobalSearchScreen({ navigation }: ScreenProps<'GlobalSearch'>) {
   const [query, setQuery] = useState('');
@@ -70,6 +75,18 @@ export function GlobalSearchScreen({ navigation }: ScreenProps<'GlobalSearch'>) 
   };
 
   const hasQuery = debouncedQuery.trim() !== '';
+
+  const startSearch = (term: string) => {
+    setQuery(term);
+    commitSearch(term);
+  };
+
+  const openCategory = (category: CourseCategoryId | 'all') => {
+    navigation.navigate(
+      'MyCourses',
+      category === 'all' ? undefined : { category }
+    );
+  };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea} testID="global-search">
@@ -138,10 +155,40 @@ export function GlobalSearchScreen({ navigation }: ScreenProps<'GlobalSearch'>) 
               />
             ) : null}
             {!hasQuery ? (
-              <View style={styles.idleWrap}>
+              <View style={styles.idleWrap} testID="global-search-idle">
                 <Text style={styles.idleText}>
                   Search across courses, lessons, the forum and assessments.
                 </Text>
+
+                <View style={styles.idleSection} testID="global-search-popular">
+                  <Text style={styles.idleHeading}>Popular searches</Text>
+                  <View style={styles.popularRow}>
+                    {POPULAR_SEARCHES.map((term) => (
+                      <Pressable
+                        accessibilityLabel={`Search for ${term}`}
+                        accessibilityRole="button"
+                        key={term}
+                        onPress={() => startSearch(term)}
+                        style={styles.popularChip}
+                        testID={`global-search-popular-${term.replace(/\s+/g, '-')}`}>
+                        <Text style={styles.popularLabel}>{term}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                <View
+                  style={styles.idleSection}
+                  testID="global-search-category-section">
+                  <Text style={styles.idleHeading}>Browse by category</Text>
+                  <CategoryChips
+                    includeAll={false}
+                    onChange={openCategory}
+                    testID="global-search-categories"
+                    value="all"
+                  />
+                </View>
+
                 <Text
                   accessibilityRole="button"
                   onPress={() => navigation.navigate('ForumHome')}
@@ -197,6 +244,35 @@ const styles = StyleSheet.create({
     color: palette.textMuted,
     textAlign: 'center',
     maxWidth: 300,
+  },
+  idleSection: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  idleHeading: {
+    ...typography.label,
+    color: palette.textPrimary,
+  },
+  popularRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  popularChip: {
+    minHeight: minTouchTarget,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.border,
+  },
+  popularLabel: {
+    ...typography.caption,
+    color: palette.textSecondary,
   },
   idleLink: {
     ...typography.label,

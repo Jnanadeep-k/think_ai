@@ -1,10 +1,13 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import type { CourseCategoryId } from '@/types';
+
 /** Route + param map for the five assigned pages. */
 export type RootStackParamList = {
   Login: undefined;
   LearnerDashboard: undefined;
-  MyCourses: undefined;
+  MyLearning: undefined;
+  MyCourses: { category?: CourseCategoryId } | undefined;
   CourseDetail: { courseId: string; moduleId?: string };
   GlobalSearch: undefined;
   ForumHome: { categoryId?: string; threadId?: string } | undefined;

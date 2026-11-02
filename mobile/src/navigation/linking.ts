@@ -31,6 +31,7 @@ export const DEEP_LINK_ALIASES = [
  */
 export const DEEP_LINK_ROUTES: Readonly<Partial<Record<ScreenName, string>>> = {
   LearnerDashboard: 'learner/dashboard',
+  MyLearning: 'learner/my-learning',
   MyCourses: 'learner/courses',
   CourseDetail: 'learner/courses/:courseId',
   GlobalSearch: 'search',

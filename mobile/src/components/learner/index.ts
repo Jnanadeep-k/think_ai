@@ -4,6 +4,18 @@ export type { CourseCardProps } from './CourseCard';
 export { CourseGrid } from './CourseGrid';
 export type { CourseGridProps } from './CourseGrid';
 
+export { CourseRail } from './CourseRail';
+export type { CourseRailProps } from './CourseRail';
+
+export { CategoryChips } from './CategoryChips';
+export type { CategoryChipsProps } from './CategoryChips';
+
+export { SortChips } from './SortChips';
+export type { SortChipsProps } from './SortChips';
+
+export { SectionHeader } from './SectionHeader';
+export type { SectionHeaderProps } from './SectionHeader';
+
 export { FilterTabs, COURSE_STATUS_FILTERS } from './FilterTabs';
 export type { FilterTabsProps } from './FilterTabs';
 

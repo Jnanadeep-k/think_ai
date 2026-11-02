@@ -14,6 +14,7 @@ export type { ScreenName };
 /** Query parameters each screen understands (path params are always allowed). */
 const ROUTE_QUERY_PARAMS: Readonly<Partial<Record<ScreenName, readonly string[]>>> = {
   CourseDetail: ['courseId', 'moduleId'],
+  MyCourses: ['category'],
   ForumThread: ['threadId'],
   ForumHome: ['categoryId', 'threadId'],
   Checkout: ['courseId'],

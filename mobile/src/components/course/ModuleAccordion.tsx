@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { hitSlop, palette, radii, spacing, typography } from '@/theme/tokens';
-import type { CourseModule } from '@/types';
+import type { CourseModule, Lesson } from '@/types';
 
 export const ACCORDION_ANIMATION_MS = 220;
 
@@ -11,6 +11,10 @@ export interface ModuleAccordionProps {
   /** Module expanded on first render — used for deep links. */
   initiallyExpandedId?: string | null;
   onToggle?: (moduleId: string) => void;
+  /** Fired when a learner taps a lesson row. */
+  onSelectLesson?: (lesson: Lesson, module: CourseModule) => void;
+  /** Lesson ids already completed, rendered with a check mark. */
+  completedLessonIds?: readonly string[];
   testID?: string;
 }
 
@@ -26,6 +30,8 @@ export function ModuleAccordion({
   modules,
   initiallyExpandedId = null,
   onToggle,
+  onSelectLesson,
+  completedLessonIds = [],
   testID = 'module-accordion',
 }: ModuleAccordionProps) {
   const [expandedId, setExpandedId] = useState<string | null>(
@@ -105,26 +111,36 @@ export function ModuleAccordion({
                   opacity: progress,
                   height: progress.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0, 520],
+                    outputRange: [0, 760],
                   }),
                 },
               ]}
               testID={`${testID}-body-${index}`}>
               <Text style={styles.description}>{module.description}</Text>
-              {module.lessons.map((lesson, lessonIndex) => (
-                <View
-                  key={lesson.id}
-                  style={styles.lesson}
-                  testID={`${testID}-lesson-${index}-${lessonIndex}`}>
-                  <Text style={styles.lessonType}>{lesson.type.toUpperCase()}</Text>
-                  <Text style={styles.lessonTitle} numberOfLines={2}>
-                    {lesson.title}
-                  </Text>
-                  <Text style={styles.lessonDuration}>
-                    {lesson.durationMinutes} min
-                  </Text>
-                </View>
-              ))}
+              {module.lessons.map((lesson, lessonIndex) => {
+                const completed = completedLessonIds.includes(lesson.id);
+                return (
+                  <Pressable
+                    accessibilityLabel={`${lesson.title}, ${lesson.durationMinutes} minutes${
+                      completed ? ', completed' : ''
+                    }`}
+                    accessibilityRole="button"
+                    disabled={!onSelectLesson}
+                    key={lesson.id}
+                    onPress={() => onSelectLesson?.(lesson, module)}
+                    style={styles.lesson}
+                    testID={`${testID}-lesson-${index}-${lessonIndex}`}>
+                    <Text style={styles.lessonType}>{lesson.type.toUpperCase()}</Text>
+                    <Text style={styles.lessonTitle} numberOfLines={2}>
+                      {completed ? '✓ ' : ''}
+                      {lesson.title}
+                    </Text>
+                    <Text style={styles.lessonDuration}>
+                      {lesson.durationMinutes} min
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </Animated.View>
           </View>
         );

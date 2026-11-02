@@ -22,6 +22,7 @@ import { ForumThreadDetailScreen } from '@/screens/forum/ForumThreadDetailScreen
 import { ModerationScreen } from '@/screens/forum/ModerationScreen';
 import { LearnerDashboardScreen } from '@/screens/learner/LearnerDashboardScreen';
 import { MyCoursesScreen } from '@/screens/learner/MyCoursesScreen';
+import { MyLearningScreen } from '@/screens/learner/MyLearningScreen';
 import { GlobalSearchScreen } from '@/screens/search/GlobalSearchScreen';
 import { NotificationPreferencesScreen } from '@/features/notifications/screens/NotificationPreferencesScreen';
 import { PaymentFailedScreen } from '@/features/payments/screens/PaymentFailedScreen';
@@ -40,6 +41,7 @@ const LearnerDashboardRoute = withErrorBoundary(
   'learner-dashboard'
 );
 const MyCoursesRoute = withErrorBoundary(MyCoursesScreen, 'my-courses');
+const MyLearningRoute = withErrorBoundary(MyLearningScreen, 'my-learning');
 const CourseDetailRoute = withErrorBoundary(CourseDetailScreen, 'course-detail');
 const GlobalSearchRoute = withErrorBoundary(GlobalSearchScreen, 'global-search');
 const ForumHomeRoute = withErrorBoundary(ForumHomeScreen, 'forum-home');
@@ -111,6 +113,11 @@ export function RootNavigator() {
           component={MyCoursesRoute}
           name="MyCourses"
           options={{ title: 'My Courses' }}
+        />
+        <Stack.Screen
+          component={MyLearningRoute}
+          name="MyLearning"
+          options={{ title: 'My Learning' }}
         />
         <Stack.Screen
           component={CourseDetailRoute}

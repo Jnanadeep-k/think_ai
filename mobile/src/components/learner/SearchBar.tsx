@@ -6,6 +6,8 @@ export interface SearchBarProps {
   value: string;
   onChangeText: (next: string) => void;
   onClear?: () => void;
+  /** Fired when the keyboard search key is pressed. */
+  onSubmit?: () => void;
   placeholder?: string;
   /** True while a debounced request is in flight. */
   isSearching?: boolean;
@@ -16,6 +18,7 @@ export function SearchBar({
   value,
   onChangeText,
   onClear,
+  onSubmit,
   placeholder = 'Search courses…',
   isSearching = false,
   testID = 'search-bar',
@@ -43,6 +46,7 @@ export function SearchBar({
         autoCapitalize="none"
         autoCorrect={false}
         onChangeText={onChangeText}
+        onSubmitEditing={onSubmit}
         placeholder={placeholder}
         placeholderTextColor={palette.textMuted}
         returnKeyType="search"
