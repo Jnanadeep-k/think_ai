@@ -32,10 +32,6 @@ const requireRole = require('../middleware/requireRole');
  *                 type: string
  *                 format: password
  *                 example: Abc@12345
- *               role:
- *                 type: string
- *                 enum: [Learner, Instructor, TA, Admin]
- *                 example: Learner
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -92,8 +88,6 @@ router.post('/login', login);
  *       401:
  *         description: Unauthorized / Invalid token
  */
-router.post('/register', register);
-router.post('/login', login);
 router.get('/me', requireRole(['Admin', 'Instructor', 'TA', 'Learner']), getCurrentUser);
 
 module.exports = router;

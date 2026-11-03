@@ -28,6 +28,21 @@ const activityRateLimits = new Map();
 
 const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW_MS = 10000;
+const ROOM_EVENT_HISTORY_LIMIT = 100;
+const roomEventHistory = new Map();
+// High-frequency socket logging becomes measurable under load. Keep it opt-in
+// for diagnosis instead of writing once per connection/event in normal runs.
+const debugSocket = (...args) => {
+    if (process.env.SOCKET_DEBUG === "true") console.log(...args);
+};
+
+function emitRoomEvent(io, roomName, event, payload) {
+    const entry = { event, payload, timestamp: new Date().toISOString() };
+    const history = roomEventHistory.get(roomName) || [];
+    history.push(entry);
+    roomEventHistory.set(roomName, history.slice(-ROOM_EVENT_HISTORY_LIMIT));
+    io.to(roomName).emit(event, payload);
+}
 
 
 module.exports = function (io) {
@@ -183,8 +198,13 @@ module.exports = function (io) {
                 }
             );
 
+            prevState.rooms.forEach((roomName) => {
+                const missedEvents = roomEventHistory.get(roomName) || [];
+                socket.emit(EVENTS.ROOM_EVENTS_REPLAYED, { roomName, events: missedEvents });
+            });
 
-            console.log(
+
+            debugSocket(
                 `[socket] RECONNECTED: ${socket.id} ` +
                 `(user=${userId}) — restored ` +
                 `${prevState.rooms.size} room(s)`
@@ -204,7 +224,7 @@ module.exports = function (io) {
             );
 
 
-            console.log(
+            debugSocket(
                 `[socket] connected: ${socket.id} ` +
                 `(user=${userId}, role=${role})`
             );
@@ -299,7 +319,7 @@ module.exports = function (io) {
                 });
 
 
-                console.log(
+                debugSocket(
                     `[socket] ${socket.id} ` +
                     `joined room "${roomName}"`
                 );
@@ -382,12 +402,27 @@ module.exports = function (io) {
                 });
 
 
-                console.log(
+                debugSocket(
                     `[socket] ${socket.id} ` +
                     `left room "${roomName}"`
                 );
             }
         );
+
+        // A client can explicitly request events missed while reconnecting.
+        // Replay is restricted to rooms the current socket has joined.
+        socket.on(EVENTS.ROOM_REPLAY_REQUEST, ({ roomName, after } = {}, ack) => {
+            const joinedRooms = activeConnections.get(socket.id)?.rooms;
+            if (!roomName || !joinedRooms?.has(roomName)) {
+                return ack?.({ ok: false, error: "Join the room before requesting replay" });
+            }
+            const afterTime = after ? Date.parse(after) : 0;
+            const events = (roomEventHistory.get(roomName) || []).filter((entry) =>
+                !Number.isFinite(afterTime) || Date.parse(entry.timestamp) > afterTime
+            );
+            socket.emit(EVENTS.ROOM_EVENTS_REPLAYED, { roomName, events });
+            return ack?.({ ok: true, eventCount: events.length });
+        });
 
 
         // ------------------------------------------------
@@ -508,8 +543,7 @@ module.exports = function (io) {
 
             const message = chatManager.addMessage(roomName, userId, text);
 
-            io.to(roomName).emit(EVENTS.CHAT_MESSAGE, message);
-
+            emitRoomEvent(io, roomName, EVENTS.CHAT_MESSAGE, message);
             ack?.({ ok: true, message });
         });
 
@@ -527,14 +561,13 @@ module.exports = function (io) {
 
             const poll = pollManager.createPoll(roomName, question, options);
 
-            io.to(roomName).emit(EVENTS.POLL_STARTED, {
+            emitRoomEvent(io, roomName, EVENTS.POLL_STARTED, {
                 pollId: poll.pollId,
                 question: poll.question,
                 options: poll.options,
                 roomName,
                 startedAt: poll.startedAt,
             });
-
             ack?.({ ok: true, pollId: poll.pollId });
         });
 
@@ -552,14 +585,13 @@ module.exports = function (io) {
                 return ack?.({ ok: false, error: "Invalid vote (no active poll, already voted, or bad option)" });
             }
 
-            io.to(roomName).emit(EVENTS.POLL_RESULTS, {
+            emitRoomEvent(io, roomName, EVENTS.POLL_RESULTS, {
                 pollId: poll.pollId,
                 question: poll.question,
                 options: poll.options,
                 votes: poll.votes,
                 roomName,
             });
-
             ack?.({ ok: true });
         });
 
@@ -577,7 +609,7 @@ module.exports = function (io) {
                 return ack?.({ ok: false, error: "No active poll for this room" });
             }
 
-            io.to(roomName).emit(EVENTS.POLL_ENDED, {
+            emitRoomEvent(io, roomName, EVENTS.POLL_ENDED, {
                 pollId: poll.pollId,
                 roomName,
                 endedAt: new Date().toISOString(),
@@ -605,7 +637,7 @@ module.exports = function (io) {
 
             const breakout = breakoutManager.createBreakout(roomName, memberUserIds, groupCount);
 
-            io.to(roomName).emit(EVENTS.BREAKOUT_STARTED, {
+            emitRoomEvent(io, roomName, EVENTS.BREAKOUT_STARTED, {
                 roomName,
                 groups: breakout.groups,
                 startedAt: breakout.startedAt,
@@ -628,7 +660,7 @@ module.exports = function (io) {
                 return ack?.({ ok: false, error: "No active breakout or group not found" });
             }
 
-            io.to(roomName).emit(EVENTS.BREAKOUT_ASSIGN, {
+            emitRoomEvent(io, roomName, EVENTS.BREAKOUT_ASSIGN, {
                 roomName,
                 groupName,
                 userId: targetUserId || userId,
@@ -651,7 +683,7 @@ module.exports = function (io) {
                 return ack?.({ ok: false, error: "No active breakout for this room" });
             }
 
-            io.to(roomName).emit(EVENTS.BREAKOUT_ENDED, {
+            emitRoomEvent(io, roomName, EVENTS.BREAKOUT_ENDED, {
                 roomName,
                 endedAt: new Date().toISOString(),
             });
@@ -721,7 +753,7 @@ module.exports = function (io) {
                                 );
 
 
-                                console.log(
+                                debugSocket(
                                     `[socket] grace period ` +
                                     `expired for user=${userId} ` +
                                     `— fully removed`
@@ -755,7 +787,7 @@ module.exports = function (io) {
                 );
 
 
-                console.log(
+                debugSocket(
                     `[socket] disconnected: ` +
                     `${socket.id} ` +
                     `(reason: ${reason}) ` +

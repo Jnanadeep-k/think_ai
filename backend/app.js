@@ -25,6 +25,9 @@ const lessonProgressRoutes = require("./routes/lessonProgressRoutes");
 const certificateRoutes = require("./routes/certificateRoutes");
 const assessmentRoutes = require("./routes/assessmentRoutes");
 const codeExecutionRoutes = require("./routes/codeExecutionRoutes");
+const attendanceRoutes = require("./routes/attendanceRoutes");
+const taRoutes = require("./routes/taRoutes");
+const instructorControlRoutes = require("./routes/instructorControlRoutes");
 
 const auditLogRoutes = require("./routes/auditLog");
 const analyticsRoutes = require("./routes/analytics");
@@ -39,7 +42,9 @@ const demoRoutes = require("./routes/demoRoutes");
 
 // Optional broader project routes
 const sessionRoutes = require("./routes/sessionRoutes");
-const studioRoutes = require("./routes/studioRoutes");
+// The Prisma Live Studio module supports chat, polls, attendees and breakout
+// rooms. The older Mongo-only route only exposed join and polling.
+const studioRoutes = require("./src/routes/studioRoutes");
 
 // ============================================================
 // SESSION / PASSPORT
@@ -80,7 +85,10 @@ app.use(
     })
 );
 
-app.use(morgan("dev"));
+app.use(morgan("dev", {
+    // Local signed PDF capabilities must not be recorded in URL logs.
+    skip: req => /^\/api\/lms\/certificates\/\d+\/pdf(?:\?|$)/.test(req.originalUrl)
+}));
 
 // ============================================================
 // SESSION
@@ -144,6 +152,10 @@ const swaggerOptions = {
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const patanSpec = require('./lms/openapi.json');
+Object.assign(swaggerSpec.paths, patanSpec.paths);
+swaggerSpec.components.schemas = {...swaggerSpec.components.schemas, ...patanSpec.components.schemas};
+swaggerSpec.servers = [{url:'/'}];
 
 app.use(
     "/api-docs",
@@ -181,6 +193,9 @@ app.get("/api/health", (req, res) => {
 // API ROUTES
 // ============================================================
 
+// Patan LMS routes must be mounted before legacy resource routes.
+require("./lms").installLms(app);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/admin", adminUsersRoutes);
@@ -204,6 +219,11 @@ app.use("/api/lesson-progress", lessonProgressRoutes);
 app.use("/api/certificates", certificateRoutes);
 
 app.use("/api/assessments", assessmentRoutes);
+
+app.use("/api/attendance", attendanceRoutes);
+
+app.use("/api/ta", taRoutes);
+app.use("/api/instructor-controls", instructorControlRoutes);
 
 app.use("/api/code", codeExecutionRoutes);
 

@@ -4,28 +4,9 @@ const router = express.Router();
 
 const {
     createAssessment,
-    getAllAssessments,
-    updateAssessment,
-    deleteAssessment,
     getAssessmentById,
     submitAssessment,
-    startAssessment,
-    getAssessmentAnalytics,
-    getAssessmentSubmissions,
-    getEnrollmentAssessmentStatus,
-
-    // Admin coding questions
-    createCodingQuestion,
-    getCodingQuestions,
-    getCodingQuestionById,
-    updateCodingQuestion,
-    deleteCodingQuestion,
-
-    // Admin coding test cases
-    createCodingTestCase,
-    getCodingTestCases,
-    updateCodingTestCase,
-    deleteCodingTestCase
+    getAssessmentAnalytics
 } = require("../controllers/assessmentController");
 
 const {
@@ -35,11 +16,18 @@ const {
 } = require("../validations/assessmentValidation");
 
 const prisma = require("../config/database"); // Your Prisma client
-const requireRole = require("../middleware/requireRole");
+const { authenticateToken, authorizeRoles } = require("../middleware/lmsLegacyAccess");
+const {
+    requireOwnedEnrollment,
+    requireAssessmentEnrollment,
+    redactLearnerAnswers
+} = require("../middleware/lmsLegacyOwnership");
+const adminOnly = [authenticateToken, authorizeRoles("Admin")];
+const learnerOnly = [authenticateToken, authorizeRoles("Learner")];
 
-// ============================================================
-// SWAGGER
-// ============================================================
+// ----------------------------------------------------
+// Swagger
+// ----------------------------------------------------
 
 /**
  * @swagger
@@ -48,16 +36,6 @@ const requireRole = require("../middleware/requireRole");
  *   description: Assessment Engine APIs
  */
 
-/**
- * @swagger
- * tags:
- *   name: Admin Coding Questions
- *   description: Admin APIs for GeeksforGeeks-style coding questions
- */
-
-// ============================================================
-// CREATE ASSESSMENT
-// ============================================================
 
 /**
  * @swagger
@@ -73,7 +51,6 @@ const requireRole = require("../middleware/requireRole");
  *             type: object
  *             required:
  *               - title
- *               - type
  *               - totalMarks
  *               - moduleId
  *               - questions
@@ -84,13 +61,6 @@ const requireRole = require("../middleware/requireRole");
  *               description:
  *                 type: string
  *                 example: Basic Java assessment
- *               type:
- *                 type: string
- *                 enum:
- *                   - MCQ
- *                   - CODING
- *                 example: MCQ
- *                 description: Type of assessment
  *               totalMarks:
  *                 type: integer
  *                 example: 10
@@ -99,6 +69,9 @@ const requireRole = require("../middleware/requireRole");
  *                 example: 30
  *               status:
  *                 type: string
+ *                 enum:
+ *                   - ACTIVE
+ *                   - INACTIVE
  *                 example: ACTIVE
  *               moduleId:
  *                 type: integer
@@ -107,6 +80,10 @@ const requireRole = require("../middleware/requireRole");
  *                 type: array
  *                 items:
  *                   type: object
+ *                   required:
+ *                     - questionText
+ *                     - marks
+ *                     - options
  *                   properties:
  *                     questionText:
  *                       type: string
@@ -142,9 +119,9 @@ const requireRole = require("../middleware/requireRole");
  *       500:
  *         description: Internal server error
  */
-
 router.post(
     "/",
+    ...adminOnly,
     validateAssessmentCreate,
     createAssessment
 );
@@ -192,7 +169,7 @@ router.post(
  *       500:
  *         description: Internal server error during evaluation
  */
-router.post("/evaluate-coding", requireRole(["Learner", "Instructor", "Admin"]), async (req, res) => {
+router.post("/evaluate-coding", ...adminOnly, async (req, res) => {
     try {
         const { enrollmentId, assessmentId, studentOutput, expectedOutput, maxScore } = req.body;
         const isMatch = studentOutput?.trim() === expectedOutput?.trim();
@@ -266,10 +243,9 @@ router.post("/evaluate-coding", requireRole(["Learner", "Instructor", "Admin"]),
  *       500:
  *         description: Internal server error
  */
-
 router.get(
     "/:id/analytics",
-    validateAssessmentId,
+    ...adminOnly,    validateAssessmentId,
     getAssessmentAnalytics
 );
 
@@ -326,6 +302,9 @@ router.get(
  */
 router.post(
     "/:id/start",
+    ...learnerOnly,
+    requireAssessmentEnrollment(),
+    redactLearnerAnswers,
     validateAssessmentId,
     startAssessment
 );
@@ -363,6 +342,7 @@ router.post(
  */
 router.get(
     "/:id/submissions",
+    ...adminOnly,
     validateAssessmentId,
     getAssessmentSubmissions
 );
@@ -390,26 +370,19 @@ router.get(
  *       500:
  *         description: Internal server error
  */
-
 router.get(
     "/:id",
+    ...adminOnly,
     validateAssessmentId,
     getAssessmentById
 );
 
-// ============================================================
-// SUBMIT ASSESSMENT
-// ============================================================
-
-// ============================================================
-// SUBMIT ASSESSMENT
-// ============================================================
 
 /**
  * @swagger
  * /api/assessments/{id}/submit:
  *   post:
- *     summary: Submit assessment
+ *     summary: Submit assessment and automatically grade MCQ answers
  *     tags: [Assessments]
  *     parameters:
  *       - in: path
@@ -437,31 +410,27 @@ router.get(
  *                   type: object
  *                   required:
  *                     - questionId
+ *                     - selectedOptionId
  *                   properties:
  *                     questionId:
  *                       type: integer
  *                       example: 1
  *                     selectedOptionId:
  *                       type: integer
- *                       nullable: true
  *                       example: 2
- *                     code:
- *                       type: string
- *                       nullable: true
- *                       example: |
- *                         def solution(arr):
- *                             return max(arr)
  *     responses:
  *       201:
- *         description: Assessment submitted successfully
+ *         description: Assessment submitted and graded successfully
  *       400:
  *         description: Invalid assessment submission
  *       500:
  *         description: Internal server error
  */
-
 router.post(
     "/:id/submit",
+    ...learnerOnly,
+    requireAssessmentEnrollment({ submitting: true }),
+    redactLearnerAnswers,
     validateAssessmentId,
     validateAssessmentSubmit,
     submitAssessment
@@ -471,10 +440,10 @@ router.post(
 // GENERAL ASSESSMENT CRUD & STATUS ROUTES
 // ============================================================
 
-router.get("/", getAllAssessments);
-router.put("/:id", validateAssessmentId, updateAssessment);
-router.delete("/:id", validateAssessmentId, deleteAssessment);
-router.get("/enrollment/:enrollmentId/status", getEnrollmentAssessmentStatus);
+router.get("/", ...adminOnly, getAllAssessments);
+router.put("/:id", ...adminOnly, validateAssessmentId, updateAssessment);
+router.delete("/:id", ...adminOnly, validateAssessmentId, deleteAssessment);
+router.get("/enrollment/:enrollmentId/status", ...learnerOnly, requireOwnedEnrollment, redactLearnerAnswers, getEnrollmentAssessmentStatus);
 
 // ============================================================
 // ADMIN - CREATE CODING QUESTION
@@ -595,6 +564,7 @@ router.get("/enrollment/:enrollmentId/status", getEnrollmentAssessmentStatus);
  */
 router.post(
     "/admin/coding-questions",
+    ...adminOnly,
     createCodingQuestion
 );
 
@@ -625,6 +595,7 @@ router.post(
  */
 router.get(
     "/admin/assessments/:assessmentId/coding-questions",
+    ...adminOnly,
     getCodingQuestions
 );
 
@@ -657,6 +628,7 @@ router.get(
  */
 router.get(
     "/admin/coding-questions/:questionId",
+    ...adminOnly,
     getCodingQuestionById
 );
 
@@ -724,6 +696,7 @@ router.get(
  */
 router.put(
     "/admin/coding-questions/:questionId",
+    ...adminOnly,
     updateCodingQuestion
 );
 
@@ -756,6 +729,7 @@ router.put(
  */
 router.delete(
     "/admin/coding-questions/:questionId",
+    ...adminOnly,
     deleteCodingQuestion
 );
 
@@ -809,6 +783,7 @@ router.delete(
  */
 router.post(
     "/admin/coding-questions/:questionId/test-cases",
+    ...adminOnly,
     createCodingTestCase
 );
 
@@ -841,6 +816,7 @@ router.post(
  */
 router.get(
     "/admin/coding-questions/:questionId/test-cases",
+    ...adminOnly,
     getCodingTestCases
 );
 
@@ -888,6 +864,7 @@ router.get(
  */
 router.put(
     "/admin/coding-test-cases/:testCaseId",
+    ...adminOnly,
     updateCodingTestCase
 );
 
@@ -920,6 +897,7 @@ router.put(
  */
 router.delete(
     "/admin/coding-test-cases/:testCaseId",
+    ...adminOnly,
     deleteCodingTestCase
 );
 
@@ -1047,6 +1025,7 @@ router.delete(
 
 router.post(
     "/admin/coding-questions",
+    ...adminOnly,
     createCodingQuestion
 );
 
@@ -1079,6 +1058,7 @@ router.post(
 
 router.get(
     "/admin/assessments/:assessmentId/coding-questions",
+    ...adminOnly,
     getCodingQuestions
 );
 
@@ -1113,6 +1093,7 @@ router.get(
 
 router.get(
     "/admin/coding-questions/:questionId",
+    ...adminOnly,
     getCodingQuestionById
 );
 
@@ -1182,6 +1163,7 @@ router.get(
 
 router.put(
     "/admin/coding-questions/:questionId",
+    ...adminOnly,
     updateCodingQuestion
 );
 
@@ -1216,6 +1198,7 @@ router.put(
 
 router.delete(
     "/admin/coding-questions/:questionId",
+    ...adminOnly,
     deleteCodingQuestion
 );
 
@@ -1271,6 +1254,7 @@ router.delete(
 
 router.post(
     "/admin/coding-questions/:questionId/test-cases",
+    ...adminOnly,
     createCodingTestCase
 );
 
@@ -1305,6 +1289,7 @@ router.post(
 
 router.get(
     "/admin/coding-questions/:questionId/test-cases",
+    ...adminOnly,
     getCodingTestCases
 );
 
@@ -1354,6 +1339,7 @@ router.get(
 
 router.put(
     "/admin/coding-test-cases/:testCaseId",
+    ...adminOnly,
     updateCodingTestCase
 );
 
@@ -1388,6 +1374,7 @@ router.put(
 
 router.delete(
     "/admin/coding-test-cases/:testCaseId",
+    ...adminOnly,
     deleteCodingTestCase
 );
 

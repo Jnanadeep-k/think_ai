@@ -357,6 +357,38 @@ const getAssessmentSubmissionResult = async (submissionId) => {
     return await repository.getAssessmentSubmissionResult(id);
 };
 
+const getTaGradingQueue = async () => {
+    return await repository.getTaGradingQueue();
+};
+
+const gradeSubmission = async (submissionId, data) => {
+    const id = validateId(submissionId, "Submission ID");
+    if (!data || typeof data !== "object") throw new Error("Grading data is required");
+
+    const score = Number(data.score);
+    if (!Number.isFinite(score)) throw new Error("score must be a number");
+
+    return await repository.gradeSubmission(id, {
+        score,
+        feedback: data.feedback,
+        gradedBy: data.gradedBy
+    });
+};
+
+const gradeSubmissionsBulk = async (grades, gradedBy) => {
+    if (!Array.isArray(grades) || grades.length === 0) throw new Error("At least one grade is required");
+    if (grades.length > 100) throw new Error("A maximum of 100 submissions can be graded at once");
+
+    const results = await Promise.allSettled(grades.map((grade) =>
+        gradeSubmission(grade.submissionId, { ...grade, gradedBy })
+    ));
+
+    return results.map((result, index) => result.status === "fulfilled"
+        ? { submissionId: Number(grades[index].submissionId), success: true, data: result.value }
+        : { submissionId: Number(grades[index].submissionId), success: false, message: result.reason?.message || "Could not save grade" }
+    );
+};
+
 // ============================================================
 // EXPORTS
 // ============================================================
@@ -399,5 +431,8 @@ module.exports = {
 
     // Enrollment & Results
     getEnrollmentAssessmentStatus,
-    getAssessmentSubmissionResult
+    getAssessmentSubmissionResult,
+    getTaGradingQueue,
+    gradeSubmission,
+    gradeSubmissionsBulk
 };

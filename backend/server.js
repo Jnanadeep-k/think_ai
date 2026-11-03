@@ -1,10 +1,13 @@
 require("dotenv").config();
 
-const http = require("http");
-const { Server } = require("socket.io");
+const express = require("express");
+const app = express();
 
-const app = require("./app");
+const PORT = process.env.PORT || 3000;
 
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
 const { startWorker } =
     require("./services/notificationQueueService");
 
@@ -39,6 +42,7 @@ const io = new Server(httpServer, {
 
 // Make Socket.IO available to Express
 app.set("io", io);
+require("./lms").startLmsWorker(app, io);
 
 // Initialize Socket handlers
 initSockets(io);
