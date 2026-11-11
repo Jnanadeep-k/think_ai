@@ -9,9 +9,14 @@ import {
   View,
 } from 'react-native';
 
+import { API_BASE_URL } from '@/api/http';
 import { signIn } from '@/api/session';
+import { registerPushNotifications } from '@/features/notifications/pushRegistration';
 import type { ScreenProps } from '@/navigation/types';
-import { palette, radii, spacing, typography } from '@/theme/tokens';
+import {radii, spacing, typography} from '@/theme/tokens';
+import type { Palette } from '@/theme/tokens';
+import { useThemedStyles } from '@/theme/useThemedStyles';
+import { useTheme } from '@/theme/ThemeProvider';
 
 /**
  * Minimal sign-in for the deep-link auth gate and the E2E journey. The forum
@@ -19,6 +24,8 @@ import { palette, radii, spacing, typography } from '@/theme/tokens';
  * verified server-side in the LMS; this screen only stores the identity.
  */
 export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
+  const styles = useThemedStyles(createStyles);
+  const { palette } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -31,12 +38,39 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
     }
     setSubmitting(true);
     setError(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      await signIn(email.trim().toLowerCase());
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => null) as {
+        success?: boolean;
+        token?: string;
+        user?: { id?: string | number };
+        error?: string;
+        message?: string;
+      } | null;
+      if (!response.ok || !payload?.success || !payload.token || !payload.user?.id) {
+        throw new Error(payload?.error ?? payload?.message ?? 'Sign-in failed.');
+      }
+      await signIn(String(payload.user.id), payload.token);
+      // Permission may be declined; that must never block sign-in.
+      void registerPushNotifications().catch(() => undefined);
       navigation.replace('LearnerDashboard');
-    } catch {
-      setError('Could not sign in. Check your details and try again.');
+    } catch (loginError) {
+      setError(
+        loginError instanceof Error && loginError.name === 'AbortError'
+          ? 'The server did not respond. Start the backend and check that your phone and laptop use the same Wi-Fi.'
+          : loginError instanceof Error
+            ? loginError.message
+            : 'Could not sign in. Check your details and try again.',
+      );
     } finally {
+      clearTimeout(timeout);
       setSubmitting(false);
     }
   };
@@ -94,7 +128,7 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: Palette) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: palette.background,

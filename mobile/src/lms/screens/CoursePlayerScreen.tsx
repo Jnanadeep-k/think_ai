@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, ScrollView, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Video, ResizeMode } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { AppButton } from "@/components/common/AppButton";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import type { ScreenProps } from "@/navigation/types";
@@ -128,10 +128,34 @@ export function CoursePlayerScreen({
   route,
   navigation,
 }: ScreenProps<"CoursePlayer">) {
-  const { resource, lesson, lessons, uri, message, download, video,
+  const { resource, lesson, lessons, uri, message, download,
     initialPosition, completed, online, playback, downloadCurrent, setSelected } =
     useCoursePlayer(route.params.courseId, route.params.lessonId);
   const scroll = useRef<ScrollView>(null);
+  const hosted = lesson?.videoUrl ? youtubeEmbed(lesson.videoUrl) : null;
+  const player = useVideoPlayer(hosted ? null : uri, current => {
+    current.timeUpdateEventInterval = 1;
+  });
+  useEffect(() => {
+    if (uri && !hosted) player.currentTime = initialPosition / 1000;
+  }, [player, uri, hosted, initialPosition]);
+  useEffect(() => {
+    const report = (finished = false) => playback({
+      isLoaded: true,
+      positionMillis: player.currentTime * 1000,
+      isPlaying: player.playing,
+      didJustFinish: finished,
+    } as Parameters<typeof playback>[0]);
+    const subscriptions = [
+      player.addListener("timeUpdate", () => report()),
+      player.addListener("playingChange", () => report()),
+      player.addListener("playToEnd", () => report(true)),
+      player.addListener("statusChange", event => {
+        if (event.status === "error") playback({ isLoaded: false, error: event.error?.message || "Video playback failed." });
+      }),
+    ];
+    return () => subscriptions.forEach(subscription => subscription.remove());
+  }, [player, playback]);
   return (
     <Screen title={resource.data?.course.title || "Course player"} scrollRef={scroll}>
       <LoadState {...resource} retry={resource.refresh} />
@@ -141,16 +165,12 @@ export function CoursePlayerScreen({
           {youtubeEmbed(lesson.videoUrl) ? (
             <HostedVideo key={`video:${lesson.id}`} url={youtubeEmbed(lesson.videoUrl)!} />
           ) : uri ? (
-            <Video
-              ref={video}
+            <VideoView
               key={`${lesson.id}:${uri}`}
-              source={{ uri }}
+              player={player}
               style={{ width: "100%", height: 230, backgroundColor: "#000" }}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
-              positionMillis={initialPosition}
-              progressUpdateIntervalMillis={1000}
-              onPlaybackStatusUpdate={playback}
+              nativeControls
+              contentFit="contain"
             />
           ) : (
             <Message text="Video unavailable for this lesson." />
@@ -192,7 +212,7 @@ export function CoursePlayerScreen({
                   title={`${l.id === lesson.id ? "▶ " : ""}${l.title}`}
                   variant={l.id === lesson.id ? "primary" : "secondary"}
                   onPress={() => {
-                    if (l.id !== lesson.id) void video.current?.pauseAsync().catch(() => undefined);
+                    if (l.id !== lesson.id) player.pause();
                     setSelected(l.id);
                     scroll.current?.scrollTo({ y: 0, animated: true });
                   }}

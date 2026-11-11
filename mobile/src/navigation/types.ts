@@ -1,5 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
+import type { CourseCategoryId } from '@/types';
+
 /** Route + param map for the five assigned pages. */
 export type RootStackParamList = {
   SignIn: undefined;
@@ -18,9 +20,12 @@ export type RootStackParamList = {
   LmsSettings: undefined;
   Downloads: undefined;
   LearnerDashboard: undefined;
-  MyCourses: undefined;
+  MyLearning: undefined;
+  MyCourses: { category?: CourseCategoryId } | undefined;
   CourseDetail: { courseId: string; moduleId?: string };
   GlobalSearch: undefined;
+  Wishlist: undefined;
+  Profile: undefined;
   ForumHome: { categoryId?: string; threadId?: string } | undefined;
   // Pages 6–10.
   ForumThread: { threadId: string };
@@ -51,6 +56,13 @@ export type RootStackParamList = {
   Assessment: { assessmentId: string };
   Results: { assessmentId: string; score: number; passed: boolean };
   Certificate: { courseId: string };
+  StaffTools: undefined;
+  LiveStudio: undefined;
+  AttendanceRegister: undefined;
+  AttendanceReport: undefined;
+  GradingQueue: undefined;
+  InstructorControls: undefined;
+  RbacMatrix: undefined;
 };
 
 export type ScreenProps<RouteName extends keyof RootStackParamList> =

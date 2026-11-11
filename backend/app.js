@@ -25,6 +25,9 @@ const lessonProgressRoutes = require("./routes/lessonProgressRoutes");
 const certificateRoutes = require("./routes/certificateRoutes");
 const assessmentRoutes = require("./routes/assessmentRoutes");
 const codeExecutionRoutes = require("./routes/codeExecutionRoutes");
+const attendanceRoutes = require("./routes/attendanceRoutes");
+const taRoutes = require("./routes/taRoutes");
+const instructorControlRoutes = require("./routes/instructorControlRoutes");
 
 const auditLogRoutes = require("./routes/auditLog");
 const analyticsRoutes = require("./routes/analytics");
@@ -39,7 +42,9 @@ const demoRoutes = require("./routes/demoRoutes");
 
 // Optional broader project routes
 const sessionRoutes = require("./routes/sessionRoutes");
-const studioRoutes = require("./routes/studioRoutes");
+// The Prisma Live Studio module supports chat, polls, attendees and breakout
+// rooms. The older Mongo-only route only exposed join and polling.
+const studioRoutes = require("./src/routes/studioRoutes");
 
 // ============================================================
 // SESSION / PASSPORT
@@ -214,6 +219,11 @@ app.use("/api/lesson-progress", lessonProgressRoutes);
 app.use("/api/certificates", certificateRoutes);
 
 app.use("/api/assessments", assessmentRoutes);
+
+app.use("/api/attendance", attendanceRoutes);
+
+app.use("/api/ta", taRoutes);
+app.use("/api/instructor-controls", instructorControlRoutes);
 
 app.use("/api/code", codeExecutionRoutes);
 

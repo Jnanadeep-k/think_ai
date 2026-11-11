@@ -91,6 +91,7 @@ model Enrollment {
 
   lessonProgress        LessonProgress[]
   assessmentSubmissions AssessmentSubmission[]
+  attendanceRecords     AttendanceRecord[]
   certificate           Certificate?
   lmsNotes LmsNote[]
   lmsCertificateDelivery LmsCertificateDelivery?
@@ -99,6 +100,30 @@ model Enrollment {
   @@index([studentEmail])
   @@index([enrollmentStatus])
   @@index([courseAccess])
+}
+
+// ====================================================
+// ATTENDANCE
+// ====================================================
+
+model AttendanceRecord {
+  id Int @id @default(autoincrement())
+
+  enrollmentId Int
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  sessionTitle String
+  sessionDate  DateTime
+  status       String   @default("PRESENT")
+  notes        String?
+  recordedBy   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([enrollmentId, sessionDate, sessionTitle])
+  @@index([sessionDate])
+  @@index([status])
 }
 
 // ====================================================
@@ -432,6 +457,9 @@ model AssessmentSubmission {
 
   status String @default("SUBMITTED")
 
+  feedback String?
+  gradedBy String?
+  gradedAt DateTime?
   startedAt DateTime @default(now())
   expiresAt DateTime?
   flaggedQuestionIds Json?
@@ -501,6 +529,7 @@ model LiveSession {
   title     String
   hostId    String
   status    String   @default("live")
+  scheduledAt DateTime?
   startedAt DateTime @default(now())
 
   attendees LiveAttendee[]
@@ -598,6 +627,31 @@ model LivePollVote {
   // One vote per user per poll (switching moves the vote).
   @@unique([pollId, userId])
   @@index([pollId])
+  @@index([userId])
+}
+
+// One persisted preparation/control state per instructor and live session.
+// JSON keeps the checklist extensible without storing device-local state.
+model InstructorSessionControl {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  sessionId String
+  checklist Json     @default("[]")
+  controls  Json     @default("{}")
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, sessionId])
+  @@index([sessionId])
+}
+
+model DevicePushToken {
+  id            Int      @id @default(autoincrement())
+  userId        String
+  expoPushToken String   @unique
+  platform      String
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
   @@index([userId])
 }
 

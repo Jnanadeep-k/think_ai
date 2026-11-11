@@ -86,6 +86,7 @@ export function LmsHomeScreen({ navigation }: ScreenProps<"LmsHome">) {
           />
         </Card>
       ))}
+      <AppButton title="Teaching tools" variant="secondary" onPress={() => navigation.navigate("StaffTools")} />
       <AppButton
         title="Community dashboard"
         variant="secondary"

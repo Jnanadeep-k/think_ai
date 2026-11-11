@@ -1,3 +1,18 @@
+import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { isOnboardingCompleted } from '@/features/onboarding/utils/onboardingStorage';
+import { OnboardingFlowScreen } from '@/screens/onboarding/OnboardingFlowScreen';
+import { useDeepLinks } from '@/navigation/useDeepLinks';
+import { subscribeToNotificationDeepLinks } from '@/features/notifications/pushRegistration';
+import { MyLearningScreen } from '@/screens/learner/MyLearningScreen';
+import { WishlistScreen } from '@/screens/learner/WishlistScreen';
+import { ProfileScreen } from '@/screens/learner/ProfileScreen';
+import { StaffToolsScreen } from "@/screens/staff/StaffToolsScreen";
+import { AttendanceRegisterScreen } from "@/screens/staff/AttendanceRegisterScreen";
+import { AttendanceReportScreen } from "@/screens/staff/AttendanceReportScreen";
+import { GradingQueueScreen } from "@/screens/staff/GradingQueueScreen";
+import { InstructorControlsScreen } from "@/screens/staff/InstructorControlsScreen";
+import { RbacMatrixScreen } from "@/screens/staff/RbacMatrixScreen";
+import { LiveStudioScreen } from "@/screens/staff/LiveStudioScreen";
 import { ErrorBoundary } from "@/components/common";
 import { withErrorBoundary } from "@/navigation/withErrorBoundary";
 import { NotificationPreferencesScreen } from "@/features/notifications/screens/NotificationPreferencesScreen";
@@ -7,7 +22,7 @@ import { AssessmentScreen } from "@/screens/learning/AssessmentScreen";
 import { CertificateScreen as CompanyCertificateScreen } from "@/screens/learning/CertificateScreen";
 import { ResultsScreen } from "@/screens/learning/ResultsScreen";
 import { VideoPlayerScreen } from "@/screens/learning/VideoPlayerScreen";
-import { useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Pressable, Text, View } from "react-native";
 import { AppIcon } from "@/components/common/AppIcon";
 import { BottomNavigation } from "@/navigation/BottomNavigation";
@@ -37,7 +52,7 @@ import {
   LearnerProfileScreen,
   LmsSettingsScreen,
 } from "@/lms/screens/ProfileScreen";
-import { DarkTheme, NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -59,17 +74,7 @@ import { palette } from "@/theme/tokens";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const navigationTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: palette.background,
-    card: palette.surface,
-    text: palette.textPrimary,
-    border: palette.border,
-    primary: palette.brand,
-  },
-};
+
 
 function protect<Name extends keyof RootStackParamList>(
   Component: ComponentType<ScreenProps<Name>>,
@@ -163,10 +168,29 @@ const ProtectedAssessment = protect<"Assessment">(AssessmentScreen, "learner");
 const ProtectedResults = protect<"Results">(ResultsScreen, "learner");
 const ProtectedCompanyCertificate = protect<"Certificate">(CompanyCertificateScreen, "learner");
 
+const StaffToolsRoute = withErrorBoundary(StaffToolsScreen, "StaffTools");
+const AttendanceRegisterRoute = withErrorBoundary(AttendanceRegisterScreen, "AttendanceRegister");
+const AttendanceReportRoute = withErrorBoundary(AttendanceReportScreen, "AttendanceReport");
+const GradingQueueRoute = withErrorBoundary(GradingQueueScreen, "GradingQueue");
+const InstructorControlsRoute = withErrorBoundary(InstructorControlsScreen, "InstructorControls");
+const RbacMatrixRoute = withErrorBoundary(RbacMatrixScreen, "RbacMatrix");
+const LiveStudioRoute = withErrorBoundary(LiveStudioScreen, "LiveStudio");
+const MyLearningRoute = withErrorBoundary(MyLearningScreen, "MyLearning");
+const WishlistRoute = withErrorBoundary(WishlistScreen, "Wishlist");
+const ProfileRoute = withErrorBoundary(ProfileScreen, "Profile");
+
 export function RootNavigator() {
   const { session, account, ready, accessStatus } = useLms();
+  const { palette: themePalette, isDark } = useTheme();
+  const baseTheme = isDark ? DarkTheme : DefaultTheme;
+  const activeNavigationTheme = { ...baseTheme, colors: { ...baseTheme.colors,
+    background: themePalette.background, card: themePalette.surface,
+    text: themePalette.textPrimary, border: themePalette.border,
+    primary: themePalette.brand, notification: themePalette.danger,
+  } };
   const admin = isAdministrator(account?.role);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const { handleReady } = useDeepLinks(navigationRef);
   const [currentRoute, setCurrentRoute] = useState<keyof RootStackParamList | null>(null);
   const updateCurrentRoute = () => setCurrentRoute(
     (navigationRef.getCurrentRoute()?.name as keyof RootStackParamList | undefined) ?? null,
@@ -180,11 +204,11 @@ export function RootNavigator() {
   return (
     <NavigationContainer
       ref={navigationRef}
-      onReady={updateCurrentRoute}
+      onReady={() => { handleReady(); updateCurrentRoute(); }}
       onStateChange={updateCurrentRoute}
       key={`${session.userId}:${Boolean(session.token)}:${account?.role || "guest"}`}
       linking={roleLinking}
-      theme={navigationTheme}
+      theme={activeNavigationTheme}
     >
       <View style={{ flex: 1 }}>
       <Stack.Navigator
@@ -348,6 +372,16 @@ export function RootNavigator() {
         <Stack.Screen name="Assessment" component={ProtectedAssessment} options={{ title: "Assessment" }} />
         <Stack.Screen name="Results" component={ProtectedResults} options={{ title: "Results" }} />
         <Stack.Screen name="Certificate" component={ProtectedCompanyCertificate} options={{ title: "Certificate" }} />
+        <Stack.Screen name="StaffTools" component={StaffToolsRoute} />
+        <Stack.Screen name="AttendanceRegister" component={AttendanceRegisterRoute} />
+        <Stack.Screen name="AttendanceReport" component={AttendanceReportRoute} />
+        <Stack.Screen name="GradingQueue" component={GradingQueueRoute} />
+        <Stack.Screen name="InstructorControls" component={InstructorControlsRoute} />
+        <Stack.Screen name="RbacMatrix" component={RbacMatrixRoute} />
+        <Stack.Screen name="LiveStudio" component={LiveStudioRoute} />
+        <Stack.Screen name="MyLearning" component={MyLearningRoute} />
+        <Stack.Screen name="Wishlist" component={WishlistRoute} />
+        <Stack.Screen name="Profile" component={ProfileRoute} />
       </Stack.Navigator>
       </View>
       {session.token ? <BottomNavigation admin={admin}
@@ -357,21 +391,38 @@ export function RootNavigator() {
   );
 }
 
+function ThemedStatusBar() {
+  const { isDark } = useTheme();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
 export function App() {
+  const [checking, setChecking] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    let active = true;
+    isOnboardingCompleted().then(completed => {
+      if (active) setShowOnboarding(!completed);
+    }).catch(() => { if (active) setShowOnboarding(true); })
+      .finally(() => { if (active) setChecking(false); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => subscribeToNotificationDeepLinks(), []);
+  if (checking) return null;
   return (
-    <SafeAreaProvider>
-      <ApiClientProvider>
-        <StatusBar style="light" />
-        <ErrorBoundary context="root">
-          <LmsProvider>
-            <LmsErrorBoundary>
-              <RootNavigator />
-            </LmsErrorBoundary>
-          </LmsProvider>
-        </ErrorBoundary>
-      </ApiClientProvider>
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <ApiClientProvider>
+          <ThemedStatusBar />
+          <ErrorBoundary context="root">
+            <LmsProvider>
+              <LmsErrorBoundary>
+                {showOnboarding ? <OnboardingFlowScreen onFinish={() => setShowOnboarding(false)} /> : <RootNavigator />}
+              </LmsErrorBoundary>
+            </LmsProvider>
+          </ErrorBoundary>
+        </ApiClientProvider>
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
-
 export default App;

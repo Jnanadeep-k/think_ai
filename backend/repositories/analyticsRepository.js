@@ -1,20 +1,5 @@
-const prisma =
-    require("../config/database");
+const prisma = require("../config/database");
 
-
-/*
- * ============================================================
- * DATE HELPERS
- * ============================================================
- */
-
-
-/*
- * Convert a date value into a Date object.
- *
- * Supported input:
- * YYYY-MM-DD
- */
 const parseDate = (value, fieldName) => {
 
     if (!value) {
@@ -48,13 +33,6 @@ const parseDate = (value, fieldName) => {
     return date;
 };
 
-
-/*
- * Build date filter.
- *
- * toDate is made inclusive by using
- * the next day as the exclusive upper bound.
- */
 const buildDateFilter = (
     fromDate,
     toDate,
@@ -116,10 +94,6 @@ const buildDateFilter = (
     };
 };
 
-
-/*
- * Normalize period.
- */
 const normalizePeriod = (period) => {
 
     if (!period) {
@@ -156,10 +130,6 @@ const normalizePeriod = (period) => {
     return normalized;
 };
 
-
-/*
- * Create a grouping key.
- */
 const getPeriodKey = (
     date,
     period
@@ -196,73 +166,10 @@ const getPeriodKey = (
     return `${year}-${month}-${day}`;
 };
 
-
-/*
- * ============================================================
- * ENROLLMENT TRENDS
- * ============================================================
- *
- * Example:
- *
- * GET /api/analytics/enrollment-trends
- *
- * GET /api/analytics/enrollment-trends
- *     ?period=MONTHLY
- *
- * GET /api/analytics/enrollment-trends
- *     ?period=DAILY
- *     &fromDate=2026-08-01
- *     &toDate=2026-08-27
- *
- * GET /api/analytics/enrollment-trends
- *     ?period=YEARLY
- *     &fromDate=2024-01-01
- *     &toDate=2026-12-31
- *
- * ============================================================
- */
-
-const getEnrollmentTrends = async (
-    options = {}
-) => {
-
-    const {
-        fromDate,
-        toDate,
-        period
-    } = options;
-
-
-    const normalizedPeriod =
-        normalizePeriod(period);
-
-
-    /*
-     * CUSTOM means exact date-range
-     * grouping.
-     *
-     * We use DAILY for the actual
-     * returned trend points.
-     */
-    const groupingPeriod =
-        normalizedPeriod === "CUSTOM"
-            ? "DAILY"
-            : normalizedPeriod;
-
-
-    const dateFilter =
-        buildDateFilter(
-            fromDate,
-            toDate,
-            "enrolledAt"
-        );
-
+const getEnrollmentTrends = async () => {
 
     const enrollments =
         await prisma.enrollment.findMany({
-
-            where:
-                dateFilter || {},
 
             select: {
                 enrolledAt: true
@@ -277,54 +184,26 @@ const getEnrollmentTrends = async (
     const trends = {};
 
 
-    for (
-        const enrollment
-        of enrollments
-    ) {
-
-        if (!enrollment.enrolledAt) {
-            continue;
-        }
-
+    for (const enrollment of enrollments) {
 
         const date =
-            new Date(
-                enrollment.enrolledAt
-            );
+            enrollment.enrolledAt
+                .toISOString()
+                .slice(0, 10);
 
 
-        const key =
-            getPeriodKey(
-                date,
-                groupingPeriod
-            );
-
-
-        trends[key] =
-            (
-                trends[key] || 0
-            ) + 1;
+        trends[date] =
+            (trends[date] || 0) + 1;
     }
 
 
-    return Object.entries(trends)
-        .map(
-            ([periodValue, enrollments]) => ({
-
-                period:
-                    periodValue,
-
-                enrollments
-            })
-        );
+    return Object.entries(trends).map(
+        ([date, count]) => ({
+            date,
+            enrollments: count
+        })
+    );
 };
-
-
-/*
- * ============================================================
- * COURSE-WISE ENROLLMENT
- * ============================================================
- */
 
 const getCourseEnrollments = async (
     options = {}
@@ -407,38 +286,7 @@ const getCourseEnrollments = async (
     );
 };
 
-
-/*
- * ============================================================
- * COURSE COMPLETION RATES
- * ============================================================
- *
- * A course is considered completed when
- * an enrollment completes at least 80%
- * of the lessons belonging to that course.
- *
- * Date filtering is applied to enrollment date.
- *
- * ============================================================
- */
-
-const getCourseCompletionRates = async (
-    options = {}
-) => {
-
-    const {
-        fromDate,
-        toDate
-    } = options;
-
-
-    const enrollmentFilter =
-        buildDateFilter(
-            fromDate,
-            toDate,
-            "enrolledAt"
-        );
-
+const getCourseCompletionRates = async () => {
 
     const courses =
         await prisma.course.findMany({
@@ -450,11 +298,8 @@ const getCourseCompletionRates = async (
                 title: true,
 
                 modules: {
-
                     select: {
-
                         lessons: {
-
                             select: {
                                 id: true
                             }
@@ -463,22 +308,13 @@ const getCourseCompletionRates = async (
                 },
 
                 batches: {
-
                     select: {
-
                         enrollments: {
-
-                            where:
-                                enrollmentFilter
-                                ? enrollmentFilter
-                                : {},
-
                             select: {
 
                                 id: true,
 
                                 lessonProgress: {
-
                                     where: {
                                         completed: true
                                     },
@@ -502,10 +338,7 @@ const getCourseCompletionRates = async (
     const result = [];
 
 
-    for (
-        const course
-        of courses
-    ) {
+    for (const course of courses) {
 
         /*
          * Get all lesson IDs belonging
@@ -525,10 +358,12 @@ const getCourseCompletionRates = async (
             courseLessonIds.length;
 
 
+        /*
+         * Create a Set so lesson lookup
+         * is fast.
+         */
         const courseLessonIdSet =
-            new Set(
-                courseLessonIds
-            );
+            new Set(courseLessonIds);
 
 
         /*
@@ -549,25 +384,18 @@ const getCourseCompletionRates = async (
         let completedEnrollments = 0;
 
 
-        let totalCompletionPercentage = 0;
-
-
         /*
          * Calculate completion for
          * every enrollment.
          */
-        for (
-            const enrollment
-            of enrollments
-        ) {
+        for (const enrollment of enrollments) {
 
             /*
              * Only count completed lessons
-             * that belong to this course.
+             * that actually belong to this course.
              */
             const completedLessonIds =
                 new Set(
-
                     enrollment.lessonProgress
                         .map(
                             (progress) =>
@@ -575,10 +403,9 @@ const getCourseCompletionRates = async (
                         )
                         .filter(
                             (lessonId) =>
-                                courseLessonIdSet
-                                    .has(
-                                        lessonId
-                                    )
+                                courseLessonIdSet.has(
+                                    lessonId
+                                )
                         )
                 );
 
@@ -587,6 +414,9 @@ const getCourseCompletionRates = async (
                 completedLessonIds.size;
 
 
+            /*
+             * Calculate completion percentage.
+             */
             const completionPercentage =
                 totalLessons === 0
                     ? 0
@@ -596,10 +426,6 @@ const getCourseCompletionRates = async (
                     ) * 100;
 
 
-            totalCompletionPercentage +=
-                completionPercentage;
-
-
             /*
              * 80% or more means
              * course completed.
@@ -607,23 +433,15 @@ const getCourseCompletionRates = async (
             if (
                 completionPercentage >= 80
             ) {
-
                 completedEnrollments++;
             }
         }
 
 
-        const averageCompletionPercentage =
-            totalEnrollments === 0
-                ? 0
-                : Number(
-                    (
-                        totalCompletionPercentage /
-                        totalEnrollments
-                    ).toFixed(2)
-                );
-
-
+        /*
+         * Calculate final course
+         * completion rate.
+         */
         const completionRate =
             totalEnrollments === 0
                 ? 0
@@ -651,15 +469,6 @@ const getCourseCompletionRates = async (
 
             completedEnrollments,
 
-            inProgressEnrollments:
-                Math.max(
-                    totalEnrollments -
-                    completedEnrollments,
-                    0
-                ),
-
-            averageCompletionPercentage,
-
             completionRate
         });
     }
@@ -668,29 +477,6 @@ const getCourseCompletionRates = async (
     return result;
 };
 
-
-/*
- * ============================================================
- * ASSESSMENT ANALYTICS
- * ============================================================
- *
- * Calculates:
- *
- * - Total submissions
- * - Passed submissions
- * - Failed submissions
- * - Average score
- * - Highest score
- * - Lowest score
- * - Average percentage
- * - Pass rate
- *
- * Date filtering uses submittedAt.
- *
- * ============================================================
- */
-
-// Report only authoritative final grades; drafts and executor failures are not scores.
 const getAssessmentAnalytics = async (options = {}) => {
     const dateFilter = buildDateFilter(options.fromDate, options.toDate, "submittedAt");
     const submissions = await prisma.assessmentSubmission.findMany({
@@ -720,19 +506,4 @@ const getAssessmentAnalytics = async (options = {}) => {
     };
 };
 
-/*
- * ============================================================
- * EXPORTS
- * ============================================================
- */
-
-module.exports = {
-
-    getEnrollmentTrends,
-
-    getCourseEnrollments,
-
-    getCourseCompletionRates,
-
-    getAssessmentAnalytics
-};
+module.exports = { getEnrollmentTrends, getCourseEnrollments, getCourseCompletionRates, getAssessmentAnalytics };

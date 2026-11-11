@@ -5,6 +5,8 @@ const initialState = {
   roles: [],
   permissions: [],
   grants: {},
+  inheritance: [],
+  lastUpdated: null,
   loading: false,
   toggling: false,
   error: null,
@@ -16,7 +18,7 @@ export const fetchMatrix = createAsyncThunk(
     try {
       return await fetchRoleMatrix();
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to load RBAC matrix');
+      return rejectWithValue(err.message || 'Failed to load RBAC matrix');
     }
   }
 );
@@ -25,9 +27,12 @@ export const toggleRolePermission = createAsyncThunk(
   'rbac/togglePermission',
   async ({ role, permission, granted }, { rejectWithValue }) => {
     try {
+      // Audit logging happens server-side inside the toggle endpoint itself —
+      // no separate POST /api/audit-logs call from the frontend (confirmed:
+      // that route only exposes GET).
       return await togglePermission(role, permission, granted);
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to toggle permission');
+      return rejectWithValue(err.message || 'Failed to toggle permission');
     }
   }
 );
@@ -49,6 +54,7 @@ const rbacSlice = createSlice({
         state.roles = action.payload.roles;
         state.permissions = action.payload.permissions;
         state.grants = action.payload.grants;
+        state.inheritance = action.payload.inheritance || [];
       })
       .addCase(fetchMatrix.rejected, (state, action) => {
         state.loading = false;
@@ -63,6 +69,12 @@ const rbacSlice = createSlice({
         const current = new Set(state.grants[role] || []);
         granted ? current.add(permission) : current.delete(permission);
         state.grants[role] = Array.from(current);
+        state.lastUpdated = {
+          role,
+          permission,
+          granted,
+          timestamp: action.payload.auditEntry?.timestamp || new Date().toISOString(),
+        };
       })
       .addCase(toggleRolePermission.rejected, (state, action) => {
         state.toggling = false;
@@ -79,5 +91,7 @@ export const selectGrants = (state) => state.rbac.grants;
 export const selectRbacLoading = (state) => state.rbac.loading;
 export const selectRbacToggling = (state) => state.rbac.toggling;
 export const selectRbacError = (state) => state.rbac.error;
+export const selectRbacInheritance = (state) => state.rbac.inheritance;
+export const selectRbacLastUpdated = (state) => state.rbac.lastUpdated;
 
 export default rbacSlice.reducer;

@@ -1,11 +1,6 @@
 const codeExecutionService =
     require("../services/codeExecutionService");
 
-
-// ============================================================
-// RUN CODE
-// ============================================================
-
 const executeCode = async (
     req,
     res
@@ -256,11 +251,6 @@ const executeCode = async (
     }
 };
 
-
-// ============================================================
-// SUBMIT CODE
-// ============================================================
-
 const submitCode = async (
     req,
     res
@@ -459,11 +449,6 @@ const submitCode = async (
     }
 };
 
-
-// ============================================================
-// JUDGE0 CALLBACK
-// ============================================================
-
 const gradingCallback = async (
     req,
     res
@@ -475,21 +460,25 @@ const gradingCallback = async (
             req.body;
 
 
+        /*
+         * Validate callback body
+         */
         if (
             !result ||
             typeof result !== "object"
         ) {
 
             return res.status(400).json({
-
                 success: false,
-
                 message:
                     "Invalid Judge0 callback data"
             });
         }
 
 
+        /*
+         * Get Judge0 token
+         */
         const token =
             result.token;
 
@@ -500,9 +489,7 @@ const gradingCallback = async (
         ) {
 
             return res.status(400).json({
-
                 success: false,
-
                 message:
                     "Judge0 token is required"
             });
@@ -510,47 +497,237 @@ const gradingCallback = async (
 
 
         /*
-         * Callback remains available for Judge0.
-         *
-         * Students do NOT call this endpoint.
-         *
-         * The main Run/Submit flow already waits
-         * for Judge0 and grades internally.
+         * Find assessment submission
+         * using Judge0 token.
          */
+        const submission =
+            await assessmentService
+                .getSubmissionByJudge0Token(
+                    token
+                );
+
+
+        if (!submission) {
+
+            console.warn(
+                `Assessment submission not found for Judge0 token: ${token}`
+            );
+
+            return res.status(404).json({
+                success: false,
+                message:
+                    "Assessment submission not found"
+            });
+        }
+
+
+        /*
+         * Get Judge0 status
+         */
+        const judge0Status =
+            result.status?.description ||
+            "UNKNOWN";
+
+
+        /*
+         * Judge0 status IDs:
+         *
+         * 1  In Queue
+         * 2  Processing
+         * 3  Accepted
+         * 4  Wrong Answer
+         * 5  Time Limit Exceeded
+         * 6  Compilation Error
+         * 7  Runtime Error
+         * etc.
+         *
+         * Only final statuses should update
+         * the submission as completed/failed.
+         */
+        const statusId =
+            Number(
+                result.status?.id
+            );
+
+
+        /*
+         * Still processing
+         */
+        if (
+            statusId === 1 ||
+            statusId === 2
+        ) {
+
+            return res.status(202).json({
+
+                success: true,
+
+                message:
+                    "Judge0 submission is still being processed",
+
+                data: {
+                    judge0Token: token,
+                    judge0Status
+                }
+            });
+        }
+
+
+        /*
+         * Determine LMS submission status.
+         */
+        let submissionStatus;
+
+
+        if (
+            statusId === 3 ||
+            judge0Status === "Accepted"
+        ) {
+
+            submissionStatus =
+                "COMPLETED";
+
+        } else {
+
+            /*
+             * Any final Judge0 failure:
+             *
+             * Wrong Answer
+             * Compilation Error
+             * Runtime Error
+             * Time Limit Exceeded
+             * Memory Limit Exceeded
+             * etc.
+             */
+            submissionStatus =
+                "FAILED";
+        }
+
+
+        /*
+         * IMPORTANT:
+         *
+         * Pass the complete Judge0 result
+         * to the assessment service.
+         */
+        const updatedSubmission =
+            await assessmentService
+                .updateAssessmentSubmissionStatus(
+
+                    submission.id,
+
+                    {
+
+                        status:
+                            submissionStatus,
+
+                        judge0Status,
+
+                        stdout:
+                            result.stdout ??
+                            null,
+
+                        stderr:
+                            result.stderr ??
+                            null,
+
+                        compileOutput:
+                            result.compile_output ??
+                            null,
+
+                        time:
+                            result.time ??
+                            null,
+
+                        memory:
+                            result.memory ??
+                            null
+                    }
+                );
+
+
         console.log(
-            "DEBUG Judge0 callback received:",
-            {
-                token,
-                status:
-                    result.status?.description ||
-                    "UNKNOWN"
-            }
+            "===================================="
+        );
+
+        console.log(
+            "Judge0 grading completed"
+        );
+
+        console.log(
+            "Submission ID:",
+            submission.id
+        );
+
+        console.log(
+            "Judge0 token:",
+            token
+        );
+
+        console.log(
+            "Judge0 status:",
+            judge0Status
+        );
+
+        console.log(
+            "LMS status:",
+            submissionStatus
+        );
+
+        console.log(
+            "===================================="
         );
 
 
+        /*
+         * Return callback response
+         */
         return res.status(200).json({
 
             success: true,
 
             message:
-                "Judge0 callback received",
+                "Grading result processed successfully",
 
             data: {
+
+                submissionId:
+                    updatedSubmission.id,
 
                 judge0Token:
                     token,
 
-                judge0Status:
-                    result.status?.description ||
-                    "UNKNOWN"
+                status:
+                    submissionStatus,
+
+                judge0Status,
+
+                stdout:
+                    result.stdout ??
+                    null,
+
+                stderr:
+                    result.stderr ??
+                    null,
+
+                compileOutput:
+                    result.compile_output ??
+                    null,
+
+                time:
+                    result.time ??
+                    null,
+
+                memory:
+                    result.memory ??
+                    null
             }
         });
-
 
     } catch (error) {
 
         console.error(
-            "Judge0 callback error:",
+            "Judge0 grading callback error:",
             error
         );
 
@@ -560,7 +737,7 @@ const gradingCallback = async (
             success: false,
 
             message:
-                "Failed to process Judge0 callback"
+                "Failed to process grading result"
         });
     }
 };
@@ -606,9 +783,11 @@ const practiceRun = async (req, res) => {
   }
 };
 
+const assessmentService =
+    require("../services/assessmentService");
+
 module.exports = { executeCode, submitCode, gradingCallback, practiceRun };
 
-// Public coding fixtures only; hidden cases and answer keys never leave the server.
 module.exports.getCodingAssessment = async (req, res, next) => {
   try {
     const assessment = await require("../services/assessmentService").getAssessmentById(req.params.assessmentId);
