@@ -1,4 +1,4 @@
-import { useState, type PropsWithChildren } from "react";
+import { useState, type PropsWithChildren, type Ref } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,13 +11,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "@/components/common/AppButton";
+import { AppIcon, screenIcon } from "@/components/common/AppIcon";
 import { palette } from "@/theme/tokens";
 import { login } from "./api";
 import { useLms } from "./LmsProvider";
 import { isAdministrator } from "./access";
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
-  content: { padding: 20, gap: 16, paddingBottom: 48 },
+  content: { padding: 20, gap: 16, paddingBottom: 32, width: '100%', maxWidth: 960, alignSelf: 'center' },
   card: {
     padding: 18,
     gap: 12,
@@ -130,22 +131,27 @@ export function LoginForm() {
 export function Screen({
   title,
   children,
-}: PropsWithChildren<{ title: string }>) {
+  scrollRef,
+}: PropsWithChildren<{ title: string; scrollRef?: Ref<ScrollView> }>) {
   const { session, ready, online, syncStatus, account } = useLms();
   const admin = isAdministrator(account?.role);
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.screen}>
+    <SafeAreaView edges={session.token ? ["left", "right"] : ["left", "right", "bottom"]} style={styles.screen}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
+          ref={scrollRef}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.content}
         >
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {session.token ? <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: '#30234F', alignItems: 'center', justifyContent: 'center' }}>
+              <AppIcon name={screenIcon(title)} color="#C4B5FD" size={19} />
+            </View> : null}
+            <Text accessibilityRole="header" style={[styles.title, { flexShrink: 1 }]}>{title}</Text>
+          </View>
           {!ready ? (
             <ActivityIndicator />
           ) : !session.token ? (

@@ -291,7 +291,7 @@ export default function CoursePlayer() {
                                   key={asm.id || asm._id}
                                   onClick={() => {
                                     if (isCoding) {
-                                      navigate(`/learner/code-execution/${asm.id || asm._id}`);
+                                      navigate(`/learner/code-execution/${asm.id || asm._id}`, { state: { enrollmentId } });
                                     } else {
                                       navigate(`/learner/assessments/${asm.id || asm._id}/take`);
                                     }

@@ -283,27 +283,6 @@ const submitCode = async (
             Number(questionId);
 
 
-        /*
-         * DEBUG:
-         * Verify that frontend sends the actual
-         * AssessmentSubmission ID.
-         */
-        console.log(
-            "DEBUG submitCode controller:",
-            {
-                receivedSubmissionId:
-                    submissionId,
-
-                parsedSubmissionId:
-                    parsedSubmissionId,
-
-                questionId:
-                    parsedQuestionId,
-
-                language
-            }
-        );
-
 
         if (
             !Number.isInteger(
@@ -413,6 +392,10 @@ const submitCode = async (
         const message =
             error?.message ||
             "Code submission failed";
+        if ([403, 404, 409].includes(error.status)) {
+            return res.status(error.status).json({ success: false, message });
+        }
+
 
 
         if (
@@ -624,3 +607,20 @@ const practiceRun = async (req, res) => {
 };
 
 module.exports = { executeCode, submitCode, gradingCallback, practiceRun };
+
+// Public coding fixtures only; hidden cases and answer keys never leave the server.
+module.exports.getCodingAssessment = async (req, res, next) => {
+  try {
+    const assessment = await require("../services/assessmentService").getAssessmentById(req.params.assessmentId);
+    const questions = (assessment?.questions || []).filter(q => q.questionType === "CODING").map(q => ({
+      id: q.id, questionText: q.questionText, problemStatement: q.problemStatement,
+      difficulty: q.difficulty, marks: q.marks, starterCode: q.starterCode,
+      testCases: (q.codingTestCases || []).filter(tc => tc.isHidden === false).map(tc => ({
+        id: tc.id, input: tc.input, isHidden: false,
+      })),
+    }));
+    if (!questions.length) return res.status(400).json({ success: false, message: "This assessment has no coding questions." });
+    res.json({ success: true, data: { id: assessment.id, title: assessment.title,
+      moduleId: assessment.moduleId, enrollmentId: req.legacyEnrollment.id, questions } });
+  } catch (error) { next(error); }
+};

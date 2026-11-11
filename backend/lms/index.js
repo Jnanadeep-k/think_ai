@@ -54,6 +54,7 @@ function installLms(app) {
       (req.method === "POST" && /^\/assessments\/[^/]+\/start$/.test(req.path)) ||
       (req.method === "GET" && /^\/assessments\/enrollment\/[^/]+\/status$/.test(req.path)) ||
       (req.method === "POST" && ["/code/run", "/code/submit", "/code/practice-run"].includes(req.path)) ||
+      (req.method === "GET" && /^\/code\/assessments\/[^/]+$/.test(req.path)) ||
       (req.method === "GET" && /^\/code\/submissions\/[^/]+$/.test(req.path)) ||
       (req.method === "PUT" && req.path === "/code/callback")
     ) return next();

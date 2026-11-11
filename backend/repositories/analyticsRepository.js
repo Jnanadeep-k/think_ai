@@ -690,192 +690,35 @@ const getCourseCompletionRates = async (
  * ============================================================
  */
 
-const getAssessmentAnalytics = async (
-    options = {}
-) => {
-
-    const {
-        fromDate,
-        toDate
-    } = options;
-
-
-    const submissionFilter =
-        buildDateFilter(
-            fromDate,
-            toDate,
-            "submittedAt"
-        );
-
-
-    const submissions =
-        await prisma.assessmentSubmission.findMany({
-
-            where:
-                submissionFilter || {},
-
-            select: {
-
-                id: true,
-
-                score: true,
-
-                totalMarks: true,
-
-                percentage: true,
-
-                status: true
-            },
-
-            orderBy: {
-                id: "asc"
-            }
-        });
-
-
-    const totalSubmissions =
-        submissions.length;
-
-
-    let passed = 0;
-
-    let failed = 0;
-
-    let totalScore = 0;
-
-    let totalPercentage = 0;
-
-
-    let highestScore =
-        totalSubmissions > 0
-            ? Number(
-                submissions[0].score || 0
-            )
-            : 0;
-
-
-    let lowestScore =
-        totalSubmissions > 0
-            ? Number(
-                submissions[0].score || 0
-            )
-            : 0;
-
-
-    for (
-        const submission
-        of submissions
-    ) {
-
-        const score =
-            Number(
-                submission.score || 0
-            );
-
-
-        const percentage =
-            Number(
-                submission.percentage || 0
-            );
-
-
-        totalScore += score;
-
-        totalPercentage +=
-            percentage;
-
-
-        if (
-            score > highestScore
-        ) {
-            highestScore = score;
-        }
-
-
-        if (
-            score < lowestScore
-        ) {
-            lowestScore = score;
-        }
-
-
-        /*
-         * Treat COMPLETED submissions
-         * with >= 40% as passed.
-         *
-         * If your assessment engine already
-         * stores pass/fail status explicitly,
-         * this can be changed later to use
-         * that field.
-         */
-        if (
-            percentage >= 40
-        ) {
-
-            passed++;
-
-        } else {
-
-            failed++;
-        }
-    }
-
-
-    const averageScore =
-        totalSubmissions === 0
-            ? 0
-            : Number(
-                (
-                    totalScore /
-                    totalSubmissions
-                ).toFixed(2)
-            );
-
-
-    const averagePercentage =
-        totalSubmissions === 0
-            ? 0
-            : Number(
-                (
-                    totalPercentage /
-                    totalSubmissions
-                ).toFixed(2)
-            );
-
-
-    const passRate =
-        totalSubmissions === 0
-            ? 0
-            : Number(
-                (
-                    (
-                        passed /
-                        totalSubmissions
-                    ) * 100
-                ).toFixed(2)
-            );
-
-
+// Report only authoritative final grades; drafts and executor failures are not scores.
+const getAssessmentAnalytics = async (options = {}) => {
+    const dateFilter = buildDateFilter(options.fromDate, options.toDate, "submittedAt");
+    const submissions = await prisma.assessmentSubmission.findMany({
+        where: { ...(dateFilter || {}), status: { in: ["COMPLETED", "GRADED", "PASSED"] } },
+        select: { id: true, score: true, totalMarks: true, percentage: true, status: true,
+            assessment: { select: { passPercentage: true } } },
+        orderBy: { id: "asc" }
+    });
+    const final = submissions.filter(row =>
+        ["COMPLETED", "GRADED", "PASSED"].includes(row.status) &&
+        Number.isFinite(row.score) && row.score >= 0 &&
+        Number.isFinite(row.totalMarks) && row.totalMarks > 0 && row.score <= row.totalMarks &&
+        Number.isFinite(row.percentage) && row.percentage >= 0 && row.percentage <= 100 &&
+        Number.isFinite(row.assessment?.passPercentage) &&
+        row.assessment.passPercentage >= 0 && row.assessment.passPercentage <= 100
+    );
+    const totalSubmissions = final.length;
+    const round = value => Number(value.toFixed(2));
+    const average = key => totalSubmissions ? round(final.reduce((sum,row) => sum + row[key],0) / totalSubmissions) : 0;
+    const passed = final.filter(row => row.percentage >= row.assessment.passPercentage).length;
     return {
-
-        totalSubmissions,
-
-        averageScore,
-
-        averagePercentage,
-
-        highestScore,
-
-        lowestScore,
-
-        passed,
-
-        failed,
-
-        passRate
+        totalSubmissions, averageScore: average("score"), averagePercentage: average("percentage"),
+        highestScore: totalSubmissions ? Math.max(...final.map(row => row.score)) : 0,
+        lowestScore: totalSubmissions ? Math.min(...final.map(row => row.score)) : 0,
+        passed, failed: totalSubmissions - passed,
+        passRate: totalSubmissions ? round(passed / totalSubmissions * 100) : 0
     };
 };
-
 
 /*
  * ============================================================

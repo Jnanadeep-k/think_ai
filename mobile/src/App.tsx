@@ -7,9 +7,10 @@ import { AssessmentScreen } from "@/screens/learning/AssessmentScreen";
 import { CertificateScreen as CompanyCertificateScreen } from "@/screens/learning/CertificateScreen";
 import { ResultsScreen } from "@/screens/learning/ResultsScreen";
 import { VideoPlayerScreen } from "@/screens/learning/VideoPlayerScreen";
-import { useMemo, type ComponentType } from "react";
+import { useMemo, useState, type ComponentType } from "react";
 import { Pressable, Text, View } from "react-native";
-import { signOut } from "@/api/session";
+import { AppIcon } from "@/components/common/AppIcon";
+import { BottomNavigation } from "@/navigation/BottomNavigation";
 import { AccessGate } from "@/lms/AccessGate";
 import { isAdministrator, type AccessAudience } from "@/lms/access";
 import {
@@ -36,7 +37,7 @@ import {
   LearnerProfileScreen,
   LmsSettingsScreen,
 } from "@/lms/screens/ProfileScreen";
-import { DarkTheme, NavigationContainer } from "@react-navigation/native";
+import { DarkTheme, NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -165,6 +166,11 @@ const ProtectedCompanyCertificate = protect<"Certificate">(CompanyCertificateScr
 export function RootNavigator() {
   const { session, account, ready, accessStatus } = useLms();
   const admin = isAdministrator(account?.role);
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const [currentRoute, setCurrentRoute] = useState<keyof RootStackParamList | null>(null);
+  const updateCurrentRoute = () => setCurrentRoute(
+    (navigationRef.getCurrentRoute()?.name as keyof RootStackParamList | undefined) ?? null,
+  );
   const roleLinking = useMemo(
     () => linkingForRole(account?.role || null, Boolean(session.token)),
     [account?.role, session.token],
@@ -173,49 +179,39 @@ export function RootNavigator() {
     return <AccessGate audience="account" onHome={() => {}} />;
   return (
     <NavigationContainer
+      ref={navigationRef}
+      onReady={updateCurrentRoute}
+      onStateChange={updateCurrentRoute}
       key={`${session.userId}:${Boolean(session.token)}:${account?.role || "guest"}`}
       linking={roleLinking}
       theme={navigationTheme}
     >
+      <View style={{ flex: 1 }}>
       <Stack.Navigator
         initialRouteName={
           !session.token ? "SignIn" : admin ? "AdminHome" : "LmsHome"
         }
         screenOptions={({ navigation }) => ({
+          headerTitle: session.token ? () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+              <AppIcon name="graduation-cap" color="#C4B5FD" size={22} />
+              <Text style={{ color: palette.textPrimary, fontSize: 19, fontWeight: '800', letterSpacing: -0.4 }}>ThinkZai</Text>
+            </View>
+          ) : undefined,
           headerRight: session.token
             ? () => (
-                <View style={{ flexDirection: "row", gap: 4 }}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Open my workspace"
+                    accessibilityLabel="Notification preferences"
                     style={{
                       padding: 8,
                       minHeight: 44,
                       justifyContent: "center",
                     }}
-                    onPress={() =>
-                      admin
-                        ? navigation.navigate("AdminHome")
-                        : navigation.navigate("LmsHome")
-                    }
+                    onPress={() => navigation.navigate("NotificationPreferences")}
                   >
-                    <Text style={{ color: palette.textPrimary }}>Home</Text>
+                    <AppIcon name="bell" color={palette.textSecondary} size={20} />
                   </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Sign out"
-                    style={{
-                      padding: 8,
-                      minHeight: 44,
-                      justifyContent: "center",
-                    }}
-                    onPress={() => void signOut()}
-                  >
-                    <Text style={{ color: palette.textSecondary }}>
-                      Sign out
-                    </Text>
-                  </Pressable>
-                </View>
               )
             : undefined,
           headerStyle: { backgroundColor: palette.surface },
@@ -353,6 +349,10 @@ export function RootNavigator() {
         <Stack.Screen name="Results" component={ProtectedResults} options={{ title: "Results" }} />
         <Stack.Screen name="Certificate" component={ProtectedCompanyCertificate} options={{ title: "Certificate" }} />
       </Stack.Navigator>
+      </View>
+      {session.token ? <BottomNavigation admin={admin}
+        route={currentRoute ?? (admin ? 'AdminHome' : 'LmsHome')}
+        onNavigate={(destination) => { if (navigationRef.isReady()) navigationRef.navigate(destination); }} /> : null}
     </NavigationContainer>
   );
 }

@@ -3,7 +3,7 @@
 .env
 .env.*
 !.env.example
-!.env.patan.example
+!.env.example
 .local/
 node_modules/
 .expo/

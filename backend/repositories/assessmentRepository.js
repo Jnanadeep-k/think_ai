@@ -923,6 +923,7 @@ const getEnrollmentAssessmentStatus = async (enrollmentId) => {
                                         select: {
                                             id: true,
                                             title: true,
+                                            passPercentage: true,
                                             submissions: {
                                                 where: {
                                                     enrollmentId: id
@@ -973,7 +974,11 @@ const getEnrollmentAssessmentStatus = async (enrollmentId) => {
         }
 
         const passedSubmission = assessment.submissions.find(
-            (submission) => Number(submission.percentage || 0) >= 40
+            (submission) => ["COMPLETED", "GRADED", "PASSED"].includes(submission.status) &&
+                submission.percentage != null &&
+                Number.isFinite(Number(submission.percentage)) &&
+                Number(submission.percentage) >= 0 && Number(submission.percentage) <= 100 &&
+                Number(submission.percentage) >= Number(assessment.passPercentage ?? 60)
         );
 
         if (passedSubmission) {
@@ -1000,7 +1005,7 @@ const getEnrollmentAssessmentStatus = async (enrollmentId) => {
     });
 
     const allPassed =
-        totalAssessments === 0 || passedAssessments === totalAssessments;
+        totalAssessments > 0 && passedAssessments === totalAssessments;
 
     return {
         enrollmentId: id,
@@ -1189,124 +1194,72 @@ const getCodingTestCasesByQuestion = async (questionId) => {
     });
 };
 
+// Persist the answer against a real active attempt before contacting Judge0.
+const prepareCodingSubmission = async ({ submissionId, questionId, code, language }) => {
+    return prisma.$transaction(async (tx) => {
+        const submission = await tx.assessmentSubmission.findUnique({ where: { id: submissionId } });
+        if (!submission) throw Object.assign(new Error("Assessment submission not found"), { status: 404 });
+        if (submission.status !== "IN_PROGRESS") throw Object.assign(new Error("Assessment attempt is not active"), { status: 409 });
+        const question = await tx.question.findUnique({ where: { id: questionId } });
+        if (!question || question.assessmentId !== submission.assessmentId || question.questionType !== "CODING") {
+            throw Object.assign(new Error("Coding question does not belong to this attempt"), { status: 403 });
+        }
+        return tx.submissionAnswer.upsert({
+            where: { submissionId_questionId: { submissionId, questionId } },
+            create: { submissionId, questionId, code, language, marksObtained: 0, isCorrect: null },
+            update: { code, language, marksObtained: 0, isCorrect: null },
+        });
+    });
+};
+
 const recalculateCodingQuestionScore = async (submissionId, questionId) => {
     const parsedSubmissionId = Number(submissionId);
     const parsedQuestionId = Number(questionId);
-
-    const executionRecords = await prisma.codingTestCaseExecution.findMany({
-        where: {
-            submissionId: parsedSubmissionId,
-            questionId: parsedQuestionId
-        },
-
-        data: updateData,
-
-        include: {
-            testCase: true
-        },
-        orderBy: {
-            id: "desc"
-        }
+    return prisma.$transaction(async (tx) => {
+        const submission = await tx.assessmentSubmission.findUnique({
+            where: { id: parsedSubmissionId },
+            include: { assessment: { include: { questions: true } } },
+        });
+        if (!submission) throw Object.assign(new Error("Assessment submission not found"), { status: 404 });
+        const question = submission.assessment.questions.find(q => q.id === parsedQuestionId && q.questionType === "CODING");
+        if (!question) throw Object.assign(new Error("Coding question does not belong to this attempt"), { status: 403 });
+        const testCases = await tx.codingTestCase.findMany({ where: { questionId: parsedQuestionId } });
+        if (!testCases.length) throw new Error("No coding test cases found for this question");
+        const records = await tx.codingTestCaseExecution.findMany({
+            where: { submissionId: parsedSubmissionId, questionId: parsedQuestionId },
+            orderBy: { id: "desc" },
+        });
+        const latest = new Map();
+        for (const execution of records) if (!latest.has(execution.testCaseId)) latest.set(execution.testCaseId, execution);
+        const questionCompleted = testCases.every(tc => latest.get(tc.id)?.judge0Status != null);
+        const allPassed = questionCompleted && testCases.every(tc => latest.get(tc.id).passed === true);
+        const marksObtained = Math.min(Number(question.marks), testCases.reduce((sum, tc) => {
+            const execution = latest.get(tc.id);
+            return sum + (execution?.passed === true ? Number(tc.marks || 0) : 0);
+        }, 0));
+        // updateMany must affect the answer created for this actual attempt.
+        const saved = await tx.submissionAnswer.updateMany({
+            where: { submissionId: parsedSubmissionId, questionId: parsedQuestionId },
+            data: { isCorrect: questionCompleted ? allPassed : null, marksObtained },
+        });
+        if (saved.count !== 1) throw new Error("Coding answer not found for this attempt");
+        const answers = await tx.submissionAnswer.findMany({ where: { submissionId: parsedSubmissionId } });
+        const allCompleted = submission.assessment.questions.length > 0 && submission.assessment.questions.every(q =>
+            answers.some(a => a.questionId === q.id && a.isCorrect !== null && a.isCorrect !== undefined));
+        const score = submission.assessment.questions.reduce((total, q) => {
+            const answer = answers.find(a => a.questionId === q.id);
+            return total + Math.min(Number(q.marks), Math.max(0, Number(answer?.marksObtained || 0)));
+        }, 0);
+        const percentage = submission.totalMarks > 0 ? Number(((score / submission.totalMarks) * 100).toFixed(2)) : 0;
+        const updated = await tx.assessmentSubmission.update({
+            where: { id: parsedSubmissionId },
+            data: { score, percentage, status: allCompleted ? "COMPLETED" : "IN_PROGRESS",
+                ...(allCompleted ? { submittedAt: new Date() } : {}) },
+        });
+        return { submissionId: updated.id, questionId: parsedQuestionId, marksObtained,
+            score: updated.score, totalMarks: updated.totalMarks, percentage: updated.percentage,
+            status: updated.status, allCompleted, allPassed };
     });
-
-    if (executionRecords.length === 0) {
-        throw new Error("No coding test case executions found");
-    }
-
-    const latestExecutionMap = new Map();
-
-    for (const execution of executionRecords) {
-        if (!latestExecutionMap.has(execution.testCaseId)) {
-            latestExecutionMap.set(execution.testCaseId, execution);
-        }
-    }
-
-    const latestExecutions = Array.from(latestExecutionMap.values());
-
-    const marksObtained = latestExecutions.reduce(
-        (total, execution) => total + Number(execution.marksObtained || 0),
-        0
-    );
-
-    const allCompleted =
-        latestExecutions.length > 0 &&
-        latestExecutions.every((execution) => execution.judge0Status !== null);
-
-    const allPassed =
-        latestExecutions.length > 0 &&
-        latestExecutions.every((execution) => execution.passed === true);
-
-    await prisma.submissionAnswer.updateMany({
-        where: {
-            submissionId: parsedSubmissionId,
-            questionId: parsedQuestionId
-        },
-        data: {
-            isCorrect: allCompleted ? allPassed : null,
-            marksObtained
-        }
-    });
-
-    const submission = await prisma.assessmentSubmission.findUnique({
-        where: {
-            id: parsedSubmissionId
-        },
-        select: {
-            id: true,
-            totalMarks: true
-        }
-    });
-
-    if (!submission) {
-        throw new Error("Assessment submission not found");
-    }
-
-    const answers = await prisma.submissionAnswer.findMany({
-        where: {
-            submissionId: parsedSubmissionId
-        },
-        select: {
-            questionId: true,
-            marksObtained: true
-        }
-    });
-
-    const score = answers.reduce((total, answer) => {
-        if (Number(answer.questionId) === parsedQuestionId) {
-            return total;
-        }
-        return total + Number(answer.marksObtained || 0);
-    }, marksObtained);
-
-    const percentage =
-        submission.totalMarks > 0
-            ? Number(((score / submission.totalMarks) * 100).toFixed(2))
-            : 0;
-
-    const status = allCompleted ? "COMPLETED" : "IN_PROGRESS";
-
-    const updatedSubmission = await prisma.assessmentSubmission.update({
-        where: {
-            id: parsedSubmissionId
-        },
-        data: {
-            score,
-            percentage,
-            status
-        }
-    });
-
-    return {
-        submissionId: updatedSubmission.id,
-        questionId: parsedQuestionId,
-        marksObtained,
-        score: updatedSubmission.score,
-        totalMarks: updatedSubmission.totalMarks,
-        percentage: updatedSubmission.percentage,
-        status: updatedSubmission.status,
-        allCompleted,
-        allPassed
-    };
 };
 
 const getAssessmentSubmissionResult = async (submissionId) => {
@@ -1953,6 +1906,7 @@ module.exports = {
     updateCodingTestCaseExecution,
     getCodingTestCasesByQuestion,
     recalculateCodingQuestionScore,
+    prepareCodingSubmission,
     getAssessmentSubmissionResult,
 
     // Admin coding question management

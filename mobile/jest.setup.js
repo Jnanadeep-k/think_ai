@@ -5,6 +5,15 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+jest.mock('expo-secure-store', () => {
+  const values = new Map();
+  return {
+    getItemAsync: jest.fn(async key => values.get(key) ?? null),
+    setItemAsync: jest.fn(async (key, value) => { values.set(key, value); }),
+    deleteItemAsync: jest.fn(async key => { values.delete(key); }),
+    __reset: () => values.clear(),
+  };
+});
 
 /**
  * NetInfo is a native module with no Jest implementation, so it is mocked
@@ -45,6 +54,7 @@ jest.useFakeTimers();
  * AsyncStorage is a shared in-memory store for the whole file).
  */
 beforeEach(async () => {
+  require('expo-secure-store').__reset();
   const asyncStorageModule = require('@react-native-async-storage/async-storage');
   const asyncStorage = asyncStorageModule.default ?? asyncStorageModule;
   await asyncStorage.clear();

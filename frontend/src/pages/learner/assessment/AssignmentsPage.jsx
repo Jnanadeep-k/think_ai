@@ -46,10 +46,10 @@ export default function AssignmentsPage() {
             coursesMap.set(c.id, {
               id: c.id,
               title: c.title || "Course Title",
-              description: c.description || "Enrolled Course Pathway"
+              description: c.description || "Enrolled Course Pathway",
+              enrollmentId: e.id
             });
-            // Automatically capture and store active enrollment ID for assessment grading
-            if (e.id) localStorage.setItem("activeEnrollmentId", e.id);
+
           }
         });
 
@@ -258,7 +258,7 @@ export default function AssignmentsPage() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (isCoding) {
-                                      navigate(`/learner/code-execution/${asm.id}`);
+                                      navigate(`/learner/code-execution/${asm.id}`, { state: { enrollmentId: selectedCourse.enrollmentId } });
                                     } else {
                                       navigate(`/learner/assessments/${asm.id}/take`);
                                     }

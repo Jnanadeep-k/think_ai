@@ -27,7 +27,15 @@
       "bundler": "metro"
     },
     "plugins": [
-      "./plugins/withPatanDownloads"
-    ]
+      "./plugins/withDownloads",
+      "./plugins/withUsbPreview",
+      "expo-secure-store",
+      "./plugins/withAwsReview"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "159a5e9d-0a3d-48e3-9642-eff9622091a6"
+      }
+    }
   }
 }

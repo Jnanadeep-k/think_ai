@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { palette, radii, spacing, typography } from '@/theme/tokens';
+import { AppIcon, actionIcon, type AppIconName } from './AppIcon';
 
 export type AppButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -21,6 +22,7 @@ export interface AppButtonProps {
   loadingLabel?: string;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  icon?: AppIconName;
 }
 
 /** Shared action button so every screen's primary/secondary actions match. */
@@ -33,9 +35,11 @@ export function AppButton({
   loadingLabel,
   style,
   testID,
+  icon,
 }: AppButtonProps) {
   const isBlocked = loading || disabled;
   const label = loading && loadingLabel ? loadingLabel : title;
+  const iconName = icon ?? actionIcon(title);
 
   return (
     <Pressable
@@ -59,6 +63,8 @@ export function AppButton({
           size="small"
           style={styles.spinner}
         />
+      ) : iconName ? (
+        <AppIcon name={iconName} size={16} color={variant === 'danger' ? palette.textInverse : palette.textPrimary} />
       ) : null}
       <Text
         style={[

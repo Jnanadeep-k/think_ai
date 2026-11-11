@@ -1,4 +1,5 @@
 import { getSession, restoreSession } from './session';
+import { DEPLOYMENT_API } from '@/lms/deployment';
 
 /**
  * Minimal `fetch` transport for Pages 6–10.
@@ -10,8 +11,7 @@ import { getSession, restoreSession } from './session';
  *   - Envelope: success `{ success: true, data, ...extras }`,
  *     failure `{ success: false, message, ...extras }` with 4xx/5xx.
  */
-export const API_BASE_URL: string =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:5000/api';
+export const API_BASE_URL: string = DEPLOYMENT_API;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

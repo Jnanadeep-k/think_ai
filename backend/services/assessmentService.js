@@ -382,6 +382,7 @@ module.exports = {
     getCodingTestCaseExecutionByToken,
     updateCodingTestCaseExecution,
     recalculateCodingQuestionScore,
+    prepareCodingSubmission: repository.prepareCodingSubmission,
     getCodingTestCasesByQuestion,
 
     // Admin coding questions

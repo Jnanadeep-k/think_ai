@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, Text, View } from "react-native";
+import { AppState, ScrollView, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Video, ResizeMode } from "expo-av";
 import { AppButton } from "@/components/common/AppButton";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import type { ScreenProps } from "@/navigation/types";
 import { lmsApi } from "../api";
+import { HANDOVER_READ_API } from '../deployment';
+import { youtubeEmbed } from '../handoverContracts';
+import { HostedVideo } from '../HostedVideo';
 import { useCoursePlayer } from "@/hooks/useCoursePlayer";
 import { useLms } from "../LmsProvider";
 import { read, storageKey } from "../storage";
@@ -34,6 +37,10 @@ export function Notes({
         JSON.stringify({ text: value, dirty: true }),
       );
       setStatus("Saved on this device");
+      if (HANDOVER_READ_API) {
+        setStatus('Saved on this device. Server notes sync is unavailable.');
+        return;
+      }
       if (online) {
         await lmsApi.saveNote(enrollmentId, lessonId, value);
         if (current.current === value) {
@@ -124,13 +131,16 @@ export function CoursePlayerScreen({
   const { resource, lesson, lessons, uri, message, download, video,
     initialPosition, completed, online, playback, downloadCurrent, setSelected } =
     useCoursePlayer(route.params.courseId, route.params.lessonId);
+  const scroll = useRef<ScrollView>(null);
   return (
-    <Screen title={resource.data?.course.title || "Course player"}>
+    <Screen title={resource.data?.course.title || "Course player"} scrollRef={scroll}>
       <LoadState {...resource} retry={resource.refresh} />
       {lesson && resource.data ? (
         <>
           <Text style={styles.heading}>{lesson.title}</Text>
-          {uri ? (
+          {youtubeEmbed(lesson.videoUrl) ? (
+            <HostedVideo key={`video:${lesson.id}`} url={youtubeEmbed(lesson.videoUrl)!} />
+          ) : uri ? (
             <Video
               ref={video}
               key={`${lesson.id}:${uri}`}
@@ -146,6 +156,8 @@ export function CoursePlayerScreen({
             <Message text="Video unavailable for this lesson." />
           )}
           <Message text={`${completed}/${lessons.length} lessons completed`} />
+          {resource.data.progressPolicy === 'server-only' ? <Message text="Showing your saved course completion. Watching this video cannot update completion until progress sync is enabled." /> : null}
+          {youtubeEmbed(lesson.videoUrl) ? <Message text="This lesson uses the provider's video controls. Offline download is unavailable for this hosted video." /> : null}
           <ProgressBar
             progress={lessons.length ? (completed / lessons.length) * 100 : 0}
             accessibilityLabel="Course completion"
@@ -158,7 +170,7 @@ export function CoursePlayerScreen({
                 : `Downloading ${Math.round(download * 100)}%`
             }
             loading={download !== null}
-            disabled={!online || !lesson.videoUrl}
+            disabled={!online || !lesson.videoUrl || !!youtubeEmbed(lesson.videoUrl)}
             onPress={() => void downloadCurrent()}
           />
           {lesson.content ? (
@@ -167,12 +179,12 @@ export function CoursePlayerScreen({
             </Card>
           ) : null}
           <Notes
-            key={lesson.id}
+            key={`note:${lesson.id}`}
             enrollmentId={resource.data.enrollmentId}
             lessonId={lesson.id}
           />
           {resource.data.course.modules.map((module) => (
-            <Card key={module.id}>
+            <Card key={`module:${module.id}`}>
               <Text style={styles.heading}>{module.title}</Text>
               {module.lessons.map((l) => (
                 <AppButton
@@ -180,8 +192,9 @@ export function CoursePlayerScreen({
                   title={`${l.id === lesson.id ? "▶ " : ""}${l.title}`}
                   variant={l.id === lesson.id ? "primary" : "secondary"}
                   onPress={() => {
-                    void video.current?.pauseAsync();
+                    if (l.id !== lesson.id) void video.current?.pauseAsync().catch(() => undefined);
                     setSelected(l.id);
+                    scroll.current?.scrollTo({ y: 0, animated: true });
                   }}
                 />
               ))}
