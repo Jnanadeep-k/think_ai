@@ -24,29 +24,29 @@ export const DEEP_LINK_ALIASES = ["course/:id", "forum/thread/:id", "assessment/
 
 // Both URL parsers derive their canonical paths from this table.
 export const DEEP_LINK_ROUTES: Readonly<Partial<Record<ScreenName, string>>> = {
-  LearnerDashboard: 'learner/dashboard',
+  
   MyLearning: 'learner/my-learning',
-  MyCourses: 'learner/courses',
-  CourseDetail: 'learner/courses/:courseId',
-  GlobalSearch: 'search',
+  
+  
+  
   Wishlist: 'learner/wishlist',
   Profile: 'learner/profile',
-  ForumHome: 'forum',
-  ForumThread: 'forum/threads/:threadId',
-  CreatePost: 'forum/new',
-  Bookmarks: 'forum/bookmarks',
-  Moderation: 'forum/moderate',
-  Checkout: 'checkout',
-  PaymentSuccess: 'checkout/success',
-  PaymentFailed: 'checkout/failed',
-  NotificationPreferences: 'settings/notifications',
+  
+  
+  
+  
+  
+  
+  
+  
+  
   SignIn: "auth/login", Login: "login", AdminHome: "admin", Account: "account",
   LmsHome: "learner/workspace", CoursePlayer: "learner/courses/:courseId/play",
   AssessmentTaking: "learner/assessments/:assessmentId/take",
   AssessmentResults: "learner/assessments/:assessmentId/results",
   LmsCertificate: "learner/certificates/:certificateId", Analytics: "admin/analytics",
   CodePlayground: "learner/playground", PlaygroundHistory: "learner/playground/history",
-  LearnerProfile: "learner/profile", LmsSettings: "learner/settings", Downloads: "learner/downloads",
+  LearnerProfile: "learner/workspace/profile", LmsSettings: "learner/settings", Downloads: "learner/downloads",
   LearnerDashboard: "learner/dashboard", MyCourses: "learner/courses",
   CourseDetail: "learner/courses/:courseId", GlobalSearch: "search", ForumHome: "forum",
   ForumThread: "forum/threads/:threadId", CreatePost: "forum/new", Bookmarks: "forum/bookmarks",

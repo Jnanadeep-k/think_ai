@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Pressable, Text, View } from "react-native";
 import { AppIcon } from "@/components/common/AppIcon";
 import { BottomNavigation } from "@/navigation/BottomNavigation";
+import { signOut } from "@/api/session";
 import { AccessGate } from "@/lms/AccessGate";
 import { isAdministrator, type AccessAudience } from "@/lms/access";
 import {
@@ -224,6 +225,7 @@ export function RootNavigator() {
           ) : undefined,
           headerRight: session.token
             ? () => (
+                <View style={{ flexDirection: "row", gap: 4 }}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Notification preferences"
@@ -236,6 +238,15 @@ export function RootNavigator() {
                   >
                     <AppIcon name="bell" color={palette.textSecondary} size={20} />
                   </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Sign out"
+                    style={{ minHeight: 44, padding: 8, justifyContent: "center" }}
+                    onPress={() => { void signOut().catch(() => {}); }}
+                  >
+                    <Text style={{ color: palette.textSecondary }}>Sign out</Text>
+                  </Pressable>
+                </View>
               )
             : undefined,
           headerStyle: { backgroundColor: palette.surface },

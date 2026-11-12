@@ -1,3 +1,4 @@
+import type { ScrollViewInstance } from "react-native";
 import { useState, type PropsWithChildren, type Ref } from "react";
 import {
   ActivityIndicator,
@@ -132,7 +133,7 @@ export function Screen({
   title,
   children,
   scrollRef,
-}: PropsWithChildren<{ title: string; scrollRef?: Ref<ScrollView> }>) {
+}: PropsWithChildren<{ title: string; scrollRef?: Ref<ScrollViewInstance> }>) {
   const { session, ready, online, syncStatus, account } = useLms();
   const admin = isAdministrator(account?.role);
   return (

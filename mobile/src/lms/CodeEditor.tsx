@@ -4,7 +4,7 @@ import { WebView } from "react-native-webview";
 import { editorHtml, type CodeEditorProps } from "./editorHtml";
 import { Field, styles } from "./ui";
 export function CodeEditor({ code, language, onChange, editable = true }: CodeEditorProps) {
-  const ref = useRef<WebView>(null);
+  const ref = useRef<WebView<{}>>(null);
   const latest = useRef({ code, language, editable });
   latest.current = { code, language, editable };
   const sync = () => ref.current?.postMessage(JSON.stringify(latest.current));

@@ -15,7 +15,7 @@ import type { Palette } from './tokens';
  * This keeps the light and dark themes expressed with exactly the same layout
  * values and only swaps colour tokens.
  */
-export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(
+export function useThemedStyles<T extends Parameters<typeof StyleSheet.create>[0]>(
   factory: (palette: Palette) => T
 ): T {
   const { palette } = useTheme();

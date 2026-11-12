@@ -1,3 +1,4 @@
+import type { ViewInstance } from "react-native";
 import { useCertificate } from "@/hooks/useCertificate";
 import { useCertificatePreview } from '@/hooks/useCertificatePreview';
 import { useRef, useState } from "react";
@@ -20,7 +21,7 @@ export function CertificateScreen({ route }: ScreenProps<"LmsCertificate">) {
   const cert = resource.data;
   const document = useCertificatePreview(cert);
   const [issuedPng, setIssuedPng] = useState<{ owner: Certificate; uri: string } | null>(null);
-  const preview = useRef<View>(null);
+  const preview = useRef<ViewInstance>(null);
   const [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
   async function action(fn: () => Promise<unknown>) {

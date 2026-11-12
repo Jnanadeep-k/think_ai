@@ -1,23 +1,24 @@
 import { act } from '@testing-library/react-native';
-import { create } from 'react-test-renderer';
+import { create, type ReactTestRenderer } from 'react-test-renderer';
 import { PdfPreview as WebPreview } from '@/lms/PdfPreview.web';
 import { PdfPreview as NativePreview } from '@/lms/PdfPreview';
 import { isCertificatePng } from '@/lms/certificatePng';
 import { shareIssuedCertificatePng } from '@/lms/certificateShare';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 jest.mock('react-native-webview', () => ({ WebView: 'WebView' }));
-jest.mock('expo-file-system', () => ({ cacheDirectory: 'file:///cache/', EncodingType: { Base64: 'base64' }, writeAsStringAsync: jest.fn(), deleteAsync: jest.fn() }));
+jest.mock('expo-file-system/legacy', () => ({ cacheDirectory: 'file:///cache/', EncodingType: { Base64: 'base64' }, writeAsStringAsync: jest.fn(), deleteAsync: jest.fn() }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn() }));
 const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aKb8AAAAASUVORK5CYII=';
 test.each(['javascript:alert(1)', 'data:image/svg+xml;base64,iVBORw0KGgo=', 'data:image/png;base64,<script>', null])('rejects non-PNG messages %s', value => expect(isCertificatePng(value)).toBe(false));
 test('native preview accepts only validated PNG messages from its own PDF renderer', () => {
-  const callback = jest.fn(); const tree = create(<NativePreview url="data:application/pdf;base64,JVBERg==" onPng={callback} />);
+  const callback = jest.fn(); let tree!: ReactTestRenderer;
+  act(() => { tree = create(<NativePreview url="data:application/pdf;base64,JVBERg==" onPng={callback} />); });
   const view = tree.root.findByType('WebView' as any);
   act(() => { view.props.onMessage({ nativeEvent: { data: 'invalid JSON' } }); view.props.onMessage({ nativeEvent: { data: JSON.stringify({ type: 'certificatePng', dataUrl: 'javascript:alert(1)' }) } }); });
   expect(callback).not.toHaveBeenCalled();
   act(() => view.props.onMessage({ nativeEvent: { data: JSON.stringify({ type: 'certificatePng', dataUrl: png }) } }));
-  expect(callback).toHaveBeenCalledWith(png); tree.unmount();
+  expect(callback).toHaveBeenCalledWith(png); act(() => tree.unmount());
 });
 test('web PDF frame remains opaque to app storage and ignores forged image messages from other frames', () => {
   const beforeAdd = window.addEventListener, beforeRemove = window.removeEventListener;

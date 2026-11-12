@@ -9,7 +9,8 @@ const {
     createBatch,
     updateBatch,
     deleteBatch,
-    getBatchEnrollments
+    getBatchEnrollments,
+    autoAllocateStudent
 } = require("../controllers/batchController");
 
 /**

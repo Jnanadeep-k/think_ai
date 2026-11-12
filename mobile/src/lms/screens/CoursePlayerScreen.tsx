@@ -1,5 +1,6 @@
+import type { ScrollViewInstance } from "react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, ScrollView, Text, View } from "react-native";
+import { AppState, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { AppButton } from "@/components/common/AppButton";
@@ -131,7 +132,7 @@ export function CoursePlayerScreen({
   const { resource, lesson, lessons, uri, message, download,
     initialPosition, completed, online, playback, downloadCurrent, setSelected } =
     useCoursePlayer(route.params.courseId, route.params.lessonId);
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   const hosted = lesson?.videoUrl ? youtubeEmbed(lesson.videoUrl) : null;
   const player = useVideoPlayer(hosted ? null : uri, current => {
     current.timeUpdateEventInterval = 1;
