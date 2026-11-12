@@ -1,8 +1,10 @@
 require("dotenv").config();
-const http = require ('http')
-const express = require("express");
-const app = express();
-const { Server} = require("socket.io");
+
+const http = require("http");
+const { Server } = require("socket.io");
+
+const app = require("./app");
+
 const { startWorker } =
     require("./services/notificationQueueService");
 

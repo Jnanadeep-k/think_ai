@@ -1,4 +1,6 @@
+import type { ViewInstance } from "react-native";
 import { useCertificate } from "@/hooks/useCertificate";
+import { useCertificatePreview } from '@/hooks/useCertificatePreview';
 import { useRef, useState } from "react";
 import { Platform, Text, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
@@ -9,13 +11,17 @@ import {
   shareCertificateLink,
   shareCertificatePdf,
   shareCertificatePng,
+  shareIssuedCertificatePng,
 } from "../certificateShare";
 import { PdfPreview } from "../PdfPreview";
+import type { Certificate } from '../types';
 import { Card, LoadState, Message, Screen, styles } from "../ui";
 export function CertificateScreen({ route }: ScreenProps<"LmsCertificate">) {
   const resource = useCertificate(route.params.certificateId);
   const cert = resource.data;
-  const preview = useRef<View>(null);
+  const document = useCertificatePreview(cert);
+  const [issuedPng, setIssuedPng] = useState<{ owner: Certificate; uri: string } | null>(null);
+  const preview = useRef<ViewInstance>(null);
   const [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
   async function action(fn: () => Promise<unknown>) {
@@ -69,7 +75,7 @@ export function CertificateScreen({ route }: ScreenProps<"LmsCertificate">) {
           <Card>
             {cert.storage === "local" ? <Message text="Saved on this laptop. Email delivery is not enabled for this local preview." /> : null}
             <Text style={styles.heading}>PDF preview</Text>
-            <PdfPreview url={cert.pdfUrl} />
+            {document.url ? <PdfPreview key={cert.id} url={document.url} onPng={cert.enrollmentId ? uri => setIssuedPng({ owner: cert, uri }) : undefined} /> : <Message text={document.error || 'Loading authenticated PDF preview…'} />}
             <Message text="If your Android PDF preview is unavailable, use Save / share PDF to open it in your PDF viewer." />
             <AppButton
               title="Save / share PDF"
@@ -96,9 +102,13 @@ export function CertificateScreen({ route }: ScreenProps<"LmsCertificate">) {
             <AppButton
               title="Share PNG preview"
               variant="secondary"
-              disabled={busy || Platform.OS === "web"}
+              disabled={busy || (cert.enrollmentId ? issuedPng?.owner !== cert : Platform.OS === 'web')}
               onPress={() =>
                 void action(async () => {
+                  if (cert.enrollmentId) {
+                    if (issuedPng?.owner !== cert) throw new Error('Wait for the issued PDF preview to load.');
+                    await shareIssuedCertificatePng(issuedPng.uri, cert.id); return;
+                  }
                   const uri = await captureRef(preview, {
                     format: "png",
                     quality: 1,

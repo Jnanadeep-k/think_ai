@@ -25,7 +25,7 @@ export function AssessmentTakingScreen({
   );
   const [index, setIndex] = useState(0),
     [confirm, setConfirm] = useState(false);
-  const questions = model.attempt?.assessment.questions || [],
+  const questions = model.attempt?.assessment.questions || model.preview?.questions || [],
     question = questions[index];
   const answer = question ? model.answers[question.id] : undefined;
   const unanswered = questions.filter(
@@ -34,7 +34,7 @@ export function AssessmentTakingScreen({
       !model.answers[q.id]?.code?.trim(),
   ).length;
   return (
-    <Screen title={model.attempt?.assessment.title || "Assessment"}>
+    <Screen title={model.attempt?.assessment.title || model.preview?.title || "Assessment"}>
       <LoadState
         loading={model.loading}
         error={model.error}
@@ -58,7 +58,7 @@ export function AssessmentTakingScreen({
           />
         </Card>
       ) : null}
-      {model.attempt && question ? (
+      {(model.attempt || model.preview) && question ? (
         <>
           <Text
             accessibilityLiveRegion="polite"
@@ -67,17 +67,17 @@ export function AssessmentTakingScreen({
               model.seconds <= 300 ? { color: "#fbbf24" } : null,
             ]}
           >
-            Time remaining: {Math.floor(model.seconds / 60)}:
+            {model.preview ? 'Assessment preview — no timer or submission' : <>Time remaining: {Math.floor(model.seconds / 60)}:
             {String(model.seconds % 60).padStart(2, "0")}
-            {model.seconds <= 300 ? " · 5 minutes or less" : ""}
+            {model.seconds <= 300 ? " · 5 minutes or less" : ""}</>}
           </Text>
-          <Message
+          {!model.preview ? <Message
             text={
               model.savedAt
                 ? `Draft saved ${new Date(model.savedAt).toLocaleTimeString()}`
                 : "Draft auto-saves every 30 seconds"
             }
-          />
+          /> : null}
           <View style={styles.row}>
             {questions.map((q, i) => (
               <AppButton
@@ -121,6 +121,7 @@ export function AssessmentTakingScreen({
                   ).map((language) => (
                     <AppButton
                       key={language}
+                      disabled={!!model.preview || model.seconds === 0 || model.submitting}
                       title={language}
                       variant={
                         answer?.language === language ? "primary" : "secondary"
@@ -136,6 +137,7 @@ export function AssessmentTakingScreen({
                   ))}
                 </View>
                 <CodeEditor
+                  editable={!model.preview && model.seconds > 0 && !model.submitting}
                   language={answer?.language || "python"}
                   code={answer?.code || ""}
                   onChange={(code) => {
@@ -150,6 +152,7 @@ export function AssessmentTakingScreen({
               </>
             )}
             <AppButton
+              disabled={!!model.preview}
               title={
                 model.flags.includes(question.id)
                   ? "Unflag question"
@@ -174,12 +177,14 @@ export function AssessmentTakingScreen({
             />
             <AppButton
               title="Save draft"
+              disabled={!!model.preview}
               variant="secondary"
               onPress={() => void model.persist()}
             />
           </View>
           <AppButton
             title="Submit assessment"
+            disabled={!!model.preview}
             loading={model.submitting}
             onPress={() => setConfirm(true)}
           />

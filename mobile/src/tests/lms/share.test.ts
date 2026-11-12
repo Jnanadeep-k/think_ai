@@ -1,5 +1,5 @@
 import { Platform, Share } from "react-native";
-import * as FS from "expo-file-system";
+import * as FS from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
 import {
@@ -8,7 +8,7 @@ import {
   shareCertificatePdf,
   shareCertificatePng,
 } from "@/lms/certificateShare";
-jest.mock("expo-file-system", () => ({
+jest.mock("expo-file-system/legacy", () => ({
   cacheDirectory: "file:///cache/",
   downloadAsync: jest.fn(),
 }));
@@ -20,7 +20,7 @@ jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn() }));
 const cert = {
   id: 1,
   certificateNo: "CERT-1",
-  studentName: "Patan",
+  studentName: "Learner",
   courseName: "RN",
   issuedAt: new Date().toISOString(),
   pdfUrl: "https://files.invalid/1.pdf",
@@ -54,7 +54,7 @@ test("link copy uses stable app link rather than expiring S3 URL", async () => {
 test("React Native Share cancellation resolves normally", async () => {
   jest
     .spyOn(Share, "share")
-    .mockResolvedValue({ action: Share.dismissedAction });
+    .mockResolvedValue({ action: Share.dismissedAction, activityType: undefined });
   await expect(shareCertificateLink(cert)).resolves.toEqual({
     action: Share.dismissedAction,
   });
@@ -76,7 +76,7 @@ test("iOS PDF sharing uses React Native Share and preserves cancellation", async
   Object.defineProperty(Platform, "OS", { value: "ios", configurable: true });
   jest
     .spyOn(Share, "share")
-    .mockResolvedValue({ action: Share.dismissedAction });
+    .mockResolvedValue({ action: Share.dismissedAction, activityType: undefined });
   await expect(shareCertificatePdf(cert)).resolves.toEqual({
     action: Share.dismissedAction,
   });

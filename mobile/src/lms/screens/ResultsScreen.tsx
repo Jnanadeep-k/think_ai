@@ -16,7 +16,10 @@ export function AssessmentResultsScreen({
       {result && !["GRADED", "FAILED"].includes(result.status) ? (
         <Card>
           <Text style={styles.heading}>Your answers are being graded</Text>
-          <Message text="Coding questions run in the remote sandbox. This page updates automatically." />
+          <Message text={resource.polling
+            ? "Coding questions run in the remote sandbox. Checking results automatically."
+            : "Automatic checks have stopped. Your submission is retained; check again when ready."} />
+          <AppButton title="Check now" variant="secondary" disabled={resource.loading} onPress={() => void resource.checkNow()} />
         </Card>
       ) : null}
       {result?.status === "FAILED" ? (

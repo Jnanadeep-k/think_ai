@@ -1,4 +1,7 @@
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { LmsSyncIndicator } from "@/lms/SyncIndicator";
 import {
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -182,8 +185,7 @@ export function LearnerDashboardScreen({
           placeholder="Search courses, lessons and forum…"
           testID="dashboard-search"
           value={query}
-          subtitle={`${completedCount} completed · ${enrollments.length - completedCount} in progress`}
-          title="My Learning"
+
         />
 
         <View style={styles.actionRow}>
@@ -208,7 +210,7 @@ export function LearnerDashboardScreen({
             testID="staff-tools">
             <Text style={styles.browseLabel}>Teaching</Text>
           </Pressable>
-          <View style={styles.stat} testID="dashboard-enrollment-count">
+          <View style={styles.stat} testID="dashboard-enrollment-stat">
             <Text style={styles.statLabel}>Enrolled</Text>
             <Text style={styles.statValue}>{enrollments.length}</Text>
           </View>

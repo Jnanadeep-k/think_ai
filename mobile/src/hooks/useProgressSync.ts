@@ -5,6 +5,7 @@ import { getSession, type SessionState } from "@/api/session";
 import { lmsApi, LmsApiError } from "@/lms/api";
 import { acknowledgeProgress, loadQueue } from "@/lms/storage";
 import { isAdministrator } from "@/lms/access";
+import { HANDOVER_READ_API } from '@/lms/deployment';
 import type { Progress } from "@/lms/types";
 export function useProgressSync(session: SessionState, online: boolean, role: string | null, refreshAccess: () => Promise<void>) {
   const [syncStatus, setSyncStatus] = useState("Up to date");
@@ -12,6 +13,8 @@ export function useProgressSync(session: SessionState, online: boolean, role: st
   const accountRole = useRef<string | null>(null);
   accountRole.current = role || null;
   const busy = useRef(false);
+  const currentOnline = useRef(online);
+  currentOnline.current = online;
   const sync = useCallback(async () => {
     if (
       busy.current ||
@@ -26,18 +29,26 @@ export function useProgressSync(session: SessionState, online: boolean, role: st
     const token = session.token;
     try {
       let queue = await loadQueue(userId);
+      if (!currentOnline.current || getSession().userId !== userId || getSession().token !== token) return;
+      if (HANDOVER_READ_API) {
+        setSyncStatus(queue.length ? 'Device updates retained; server watch-progress sync is unavailable.' : 'Server completion records are used; watch-progress sync is unavailable.');
+        return;
+      }
       if (queue.length) setSyncStatus(`Syncing ${queue.length} update(s)...`);
       let conflicts = 0;
+      let batches = 0;
       while (
-        queue.length &&
+        queue.length && batches < 10 && currentOnline.current &&
         getSession().userId === userId &&
         getSession().token === token &&
         accountRole.current !== null &&
         !isAdministrator(accountRole.current)
       ) {
+        const previousQueue = JSON.stringify(queue);
         const sent = queue.slice(0, 100);
+        batches++;
         const result = await lmsApi.sync(sent, token);
-        if (getSession().userId !== userId) break;
+        if (getSession().userId !== userId || getSession().token !== token) break;
         conflicts += result.filter((r) => r.conflict).length;
         setVersions((old) => ({
           ...old,
@@ -47,13 +58,15 @@ export function useProgressSync(session: SessionState, online: boolean, role: st
         }));
         await acknowledgeProgress(userId, sent, result);
         queue = await loadQueue(userId);
+        if (JSON.stringify(queue) === previousQueue) break;
       }
-      if (getSession().userId === userId)
+      if (currentOnline.current && getSession().userId === userId && getSession().token === token)
         setSyncStatus(
+          queue.length ? "Progress saved on device; some updates are pending. Tap Sync progress to retry." :
           conflicts ? "Synced; newer server progress kept." : "Up to date",
         );
     } catch (e) {
-      if (getSession().userId === userId)
+      if (currentOnline.current && getSession().userId === userId && getSession().token === token)
         setSyncStatus(
           e instanceof LmsApiError && e.status === 401
             ? "Sign in again to sync."
@@ -65,7 +78,7 @@ export function useProgressSync(session: SessionState, online: boolean, role: st
   }, [online, session, role]);
   useEffect(() => {
     setVersions({});
-  }, [session.userId]);
+  }, [session.userId, session.token]);
   useEffect(() => {
     if (!online) setSyncStatus("Offline - progress stays on this device");
     else void sync();

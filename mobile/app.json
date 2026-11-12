@@ -9,9 +9,6 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "updates": {
-      "enabled": false
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thinkzai.mobile"
@@ -27,9 +24,20 @@
     },
     "plugins": [
       "expo-notifications",
-      "./plugins/withPatanDownloads",
+      "./plugins/withDownloads",
+      "./plugins/withUsbPreview",
+      "expo-secure-store",
+      "./plugins/withAwsReview",
       "@react-native-community/datetimepicker",
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "159a5e9d-0a3d-48e3-9642-eff9622091a6"
+      }
+    },
+    "updates": {
+      "enabled": false
+    }
   }
 }

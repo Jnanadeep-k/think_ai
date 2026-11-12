@@ -1,7 +1,7 @@
 import { useThemedStyles } from "@/theme/useThemedStyles";
 import type { Palette } from "@/theme/tokens";
 import { memo, useCallback } from 'react';
-import { FlatList, StyleSheet, Text, View, ViewToken } from 'react-native';
+import { FlatList, StyleSheet, Text, View, ListViewToken } from 'react-native';
 import { EmptyState, ErrorState, InlineSpinner } from '@/components/common';
 import { LazyThumbnail } from '@/features/forum/components/LazyThumbnail';
 import { radii, spacing, typography } from '@/theme/tokens';
@@ -21,7 +21,7 @@ export interface ThreadListProps {
   onSelectThread?: (thread: ForumThread) => void;
   /** 0–1. The next page is requested once this fraction of the list is visible. */
   onViewableItemsChanged?: (info: {
-    viewableItems: ViewToken[];
+    viewableItems: ListViewToken[];
   }) => void;
   emptyTitle?: string;
   emptyMessage?: string;
@@ -107,11 +107,11 @@ export function ThreadList({
 }: ThreadListProps) {
   const styles = useThemedStyles(createStyles);
   const categoryById = new Map(categories.map(c => [c.id, c]));
-  return <FlatList contentContainerStyle={styles.content} data={threads} initialNumToRender={8} keyExtractor={item => item.id} ListEmptyComponent={hasError ? <ErrorState message={errorMessage ?? 'Unable to load threads.'} /> : isLoading ? null : <EmptyState icon="💬" message={emptyMessage} testID={`${testID}-empty`} title={emptyTitle} />} ListFooterComponent={<View>
-          {hasError ? null : isLoading || isRefreshing ? <InlineSpinner testID={`${testID}-loading`} /> : null}
+  return <FlatList contentContainerStyle={styles.content} data={threads} initialNumToRender={8} keyExtractor={item => item.id} ListEmptyComponent={hasError ? <ErrorState message={errorMessage ?? 'Unable to load threads.'} /> : isLoading ? undefined : <EmptyState icon="💬" message={emptyMessage} testID={`${testID}-empty`} title={emptyTitle} />} ListFooterComponent={<View>
+          {hasError ? undefined : isLoading || isRefreshing ? <InlineSpinner testID={`${testID}-loading`} /> : undefined}
           {!isLoading && !isRefreshing && !hasMore && threads.length > 0 ? <Text style={styles.endOfList} testID={`${testID}-end`}>
               You have reached the end
-            </Text> : null}
+            </Text> : undefined}
         </View>} maxToRenderPerBatch={8} onEndReached={onEndReached} onEndReachedThreshold={onEndReachedThreshold} onRefresh={onRefresh} onViewableItemsChanged={onViewableItemsChanged} refreshing={isRefreshing} removeClippedSubviews renderItem={({
     item
   }) => <MemoisedThreadListRow category={categoryById.get(item.categoryId)} onSelect={onSelectThread} testID={testID} thread={item} />} testID={testID} windowSize={7} />;
