@@ -12,7 +12,11 @@ const {
     deleteCourse,
     getCourseBatches
 } = require("../controllers/courseController");
-
+const {
+  validateCourseCreate,
+  validateCourseUpdate,
+  validateCourseId
+} = require("../validations/courseValidation");
 /**
  * @swagger
  * tags:

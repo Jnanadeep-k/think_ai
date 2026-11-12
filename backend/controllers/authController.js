@@ -90,3 +90,15 @@ exports.login = async (req, res) => {
 };
 
 // Export both controllers so they can be hooked up in your routes folder
+exports.getCurrentUser = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized / Invalid token' });
+    }
+    const { password, ...userWithoutPassword } = req.user;
+    return res.status(200).json({ user: userWithoutPassword });
+  } catch (error) {
+    console.error('Get current user error:', error);
+    return res.status(500).json({ error: 'Internal server error occurred.' });
+  }
+};

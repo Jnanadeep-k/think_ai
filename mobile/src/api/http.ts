@@ -10,9 +10,7 @@ import { getSession, restoreSession } from './session';
  *   - Envelope: success `{ success: true, data, ...extras }`,
  *     failure `{ success: false, message, ...extras }` with 4xx/5xx.
  */
-export const API_BASE_URL: string =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:5000/api';
-
+export const API_BASE_URL: string = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface ApiEnvelope<T> {

@@ -1,6 +1,3 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {LmsSyncIndicator} from '@/lms/SyncIndicator';
-import { useCallback } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -305,21 +302,19 @@ export function LearnerDashboardScreen({
           </View>
         ) : null}
 
-        {!showSkeleton && !hasError && recommended.length > 0 ? (
-          <View testID="dashboard-recommended">
-            <SectionHeader
-              actionLabel="See all"
-              onAction={() => navigation.navigate('MyCourses')}
-              subtitle="Based on your learning history"
-              title="Recommended for you"
-            />
-            <CourseRail
-              courses={recommended}
-              onSelect={openCatalogCourse}
-              testID="dashboard-recommended-rail"
-            />
-          </View>
-        ) : null}
+        <View testID="dashboard-recommended">
+        <SectionHeader
+          actionLabel="See all"
+          onAction={() => {}}
+          subtitle="Based on your learning history"
+          title="Recommended for you"
+        />
+        <CourseRail
+          courses={recommended}
+          onSelect={openCatalogCourse}
+          testID="dashboard-recommended-rail"
+        />
+      </View>
 
         <Text style={styles.footer}>
           Keep going — a little practice every day compounds.
@@ -346,7 +341,9 @@ const createStyles = (palette: Palette) => StyleSheet.create({
     marginTop: spacing.sm,
   },
   headerRight: {
-  actionRow: {
+    padding: spacing.lg,
+  },
+    actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
@@ -391,6 +388,5 @@ const createStyles = (palette: Palette) => StyleSheet.create({
     marginTop: spacing.xl,
     paddingHorizontal: spacing.lg,
   },
-});
-
+ });
 export default LearnerDashboardScreen;
